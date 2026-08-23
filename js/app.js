@@ -1430,7 +1430,7 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v19';
+const APP_VERSION = 'v21';
 
 document.addEventListener('pbafc:saved', () => { if (window.__pbafcReady) flashSaved(false); });
 document.addEventListener('pbafc:save-error', () => { if (window.__pbafcReady) flashSaved(true); });
