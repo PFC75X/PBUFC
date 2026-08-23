@@ -1403,6 +1403,27 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
+document.addEventListener('pbafc:saved', () => { if (window.__pbafcReady) flashSaved(false); });
+document.addEventListener('pbafc:save-error', () => { if (window.__pbafcReady) flashSaved(true); });
+
+let toastTimer = null;
+function flashSaved(err) {
+  let t = document.getElementById('save-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'save-toast';
+    t.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><b></b><small></small>`;
+    document.body.appendChild(t);
+  }
+  t.classList.toggle('err', !!err);
+  t.querySelector('b').textContent = err ? 'Échec — non enregistré' : 'Enregistré';
+  t.querySelector('small').textContent = 'à ' + new Date().toLocaleTimeString('fr-FR');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
 Store.load();
 render();
+window.__pbafcReady = true;
 console.log('PBUFC — Panel de gestion chargé.');
