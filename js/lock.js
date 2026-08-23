@@ -10,7 +10,11 @@
   root.innerHTML = `
     <div class="lock-frame">
       <div class="lock-screen" id="lk-screen">
-        <div class="statusbar"><span>PBUFC OS</span><span class="sb-icons">⌁ ▮▮▮▮</span></div>
+        <canvas class="matrix" id="lk-matrix"></canvas>
+        <div class="rail l"><span>ACCÈS RESTREINT   PLAYBOY UNDERGROUND FIGHT CLUB   NIVEAU 5   ACCÈS RESTREINT</span></div>
+        <div class="rail r"><span>DOSSIERS CHIFFRÉS   PBUFC-SEC   INTERDIT AUX NON-MEMBRES   DOSSIERS CHIFFRÉS</span></div>
+        <div class="stamp">Confidentiel ★ PBUFC-Sec</div>
+        <div class="statusbar"><span>PBUFC OS</span><span class="sb-hex" id="lk-hex">ID 0x0000</span><span class="sb-icons">⌁ ▮▮▮▮</span></div>
         <div class="boot" id="lk-boot">
           <img class="boot-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
           <div class="boot-name">PBUFC<span>SECURITY OS v2.3</span></div>
@@ -61,7 +65,33 @@
     'Accès refusé — la sécurité vous observe.',
     'Alarme silencieuse armée… dernière chance.'
   ];
-  const MSGS_BOOT = ['Vérification biométrique…', 'Connexion au réseau souterrain…', 'Chargement des dossiers du club…', 'Bienvenue, Patron.'];
+  const MSGS_BOOT = ['> déchiffrement des dossiers… 0x7F3A', '> canal chiffré établi — AES-256', '[OK] pare-feu du club actif', 'BIENVENUE, PATRON.'];
+
+  const GLYPHS = 'PBUFC0123456789ABCDEF#$%&?';
+  const cv = $('lk-matrix'), cx = cv.getContext('2d');
+  let cols = 0, drops = [];
+  const FS = 15;
+  function sizeCv() { cv.width = screen.clientWidth; cv.height = screen.clientHeight; cols = Math.ceil(cv.width / FS); drops = Array.from({ length: cols }, () => Math.random() * -60); }
+  sizeCv();
+  window.addEventListener('resize', () => { try { sizeCv(); } catch (e) { } });
+  setInterval(() => {
+    cx.fillStyle = 'rgba(8,8,11,0.3)';
+    cx.fillRect(0, 0, cv.width, cv.height);
+    cx.font = FS + 'px monospace';
+    for (let i = 0; i < cols; i++) {
+      const x = i * FS, y = drops[i] * FS;
+      if (y > 0) {
+        cx.fillStyle = Math.random() < 0.06 ? 'rgba(232,181,58,0.5)' : 'rgba(229,48,74,0.32)';
+        cx.fillText(GLYPHS[Math.floor(Math.random() * GLYPHS.length)], x, y);
+      }
+      if (y > cv.height && Math.random() > 0.976) drops[i] = 0;
+      drops[i] += 0.55;
+    }
+  }, 75);
+
+  function hexId() { return 'ID 0x' + Array.from({ length: 4 }, () => '0123456789ABCDEF'[Math.floor(Math.random() * 16)]).join(''); }
+  $('lk-hex').textContent = hexId();
+  setInterval(() => { const h = $('lk-hex'); if (h) h.textContent = hexId(); }, 5000);
 
   function setStatus(txt, cls = '') { status.textContent = txt; status.className = 'lk-status ' + cls; }
 
