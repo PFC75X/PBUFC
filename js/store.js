@@ -87,7 +87,7 @@ const Store = {
       fetch(`https://api.jsonbin.io/v3/b/${this.SYNC_BIN}`, {
         method: 'PUT',
         headers: { 'X-Master-Key': this.SYNC_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ record: this.data })
+        body: JSON.stringify(this.data)
       }).then(r => {
         if (r.ok) {
           try { localStorage.setItem('pbafc_lastsync', new Date().toISOString()); } catch (e) { }
@@ -105,7 +105,11 @@ const Store = {
     if (typeof fetch === 'undefined') return Promise.resolve(null);
     return fetch(`https://api.jsonbin.io/v3/b/${this.SYNC_BIN}/latest`, { headers: { 'X-Master-Key': this.SYNC_KEY } })
       .then(r => r.ok ? r.json() : null)
-      .then(j => (j && j.record) ? j.record : null)
+      .then(j => {
+        let rec = (j && j.record) ? j.record : null;
+        if (rec && !rec.fighters && rec.record && rec.record.fighters) rec = rec.record;
+        return rec;
+      })
       .catch(() => null);
   },
 
