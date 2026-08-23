@@ -1448,7 +1448,7 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v23';
+const APP_VERSION = 'v24';
 
 function curUser() { return Store.curUser(); }
 function canManage() {
@@ -1471,8 +1471,6 @@ function updateUserChip() {
 }
 
 function showLogin() {
-  const list = D().staff.filter(s => s.pin && s.status === 'Actif');
-  if (!list.length) return;
   let ov = document.getElementById('auth-overlay');
   if (!ov) {
     ov = document.createElement('div');
@@ -1480,45 +1478,98 @@ function showLogin() {
     document.body.appendChild(ov);
   }
   ov.style.display = 'grid';
-  ov.innerHTML = `
-    <div class="auth-card">
-      <img class="auth-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
-      <h3>Qui utilise la tablette ?</h3>
-      <div class="auth-list" id="auth-list">
-        ${list.map(s => `<button class="auth-user" data-id="${s.id}"><b>${esc(s.name)}</b><small>${esc(s.role || '')}</small></button>`).join('')}
-        <button class="auth-skip">Continuer sans compte</button>
-      </div>
-      <div class="auth-pin" id="auth-pinbox" style="display:none">
-        <p>Code de <b id="auth-name"></b></p>
-        <input type="password" inputmode="numeric" maxlength="4" id="auth-input" autocomplete="off">
-        <p class="auth-err" id="auth-err" style="display:none">Code incorrect</p>
-        <div class="auth-actions">
-          <button class="btn btn-outline btn-sm" id="auth-back">Retour</button>
-          <button class="btn btn-primary btn-sm" id="auth-ok">Valider</button>
-        </div>
-      </div>
-    </div>`;
-  let selected = null;
-  ov.querySelectorAll('.auth-user').forEach(b => {
-    b.addEventListener('click', () => { selected = b; ov.querySelector('#auth-list').style.display = 'none'; ov.querySelector('#auth-pinbox').style.display = ''; ov.querySelector('#auth-name').textContent = b.textContent.split('\n')[0]; setTimeout(() => { const i = ov.querySelector('#auth-input'); if (i) i.focus(); }, 50); });
-  });
-  ov.querySelector('.auth-skip').addEventListener('click', () => { Store.setUser(null); updateUserChip(); ov.style.display = 'none'; render(); });
-  ov.querySelector('#auth-back').addEventListener('click', () => { ov.querySelector('#auth-pinbox').style.display = 'none'; ov.querySelector('#auth-list').style.display = ''; selected = null; });
-  const tryPin = () => {
-    const inp = ov.querySelector('#auth-input');
-    const st = list.find(s => selected && s.id === selected.dataset.id);
-    if (st && inp.value.trim() === String(st.pin).trim()) {
-      Store.setUser({ id: st.id, name: st.name, role: st.role || '' });
-      updateUserChip();
-      ov.style.display = 'none';
-      render();
+  let mode = null, selected = null;
+
+  const accounts = () => D().staff.filter(s => s.pin && s.status === 'Actif');
+
+  function draw() {
+    const list = accounts();
+    if (!mode) mode = list.length ? 'list' : 'create';
+
+    if (mode === 'create') {
+      ov.innerHTML = `
+        <div class="auth-card">
+          <img class="auth-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
+          <h3>${list.length ? 'Créer un compte' : 'Bienvenue au PBUFC'}</h3>
+          <p class="auth-sub">${list.length ? 'Nouveau compte employé' : 'Aucun compte — créez le premier pour commencer'}</p>
+          <input type="text" id="ac-name" placeholder="Votre nom RP *" maxlength="40">
+          <select id="ac-role">${STAFF_ROLES.map(r => `<option>${r}</option>`).join('')}</select>
+          <input type="password" inputmode="numeric" maxlength="4" id="ac-pin" placeholder="Choisissez un code PIN (4 chiffres)" autocomplete="off">
+          <p class="auth-err" id="ac-err" style="display:none"></p>
+          <div class="auth-actions">
+            ${list.length ? '<button class="btn btn-outline btn-sm" id="ac-cancel">Retour</button>' : ''}
+            <button class="btn btn-primary btn-sm" id="ac-ok">Créer mon compte</button>
+          </div>
+          ${list.length ? '' : '<button class="auth-skip">Continuer sans compte</button>'}
+        </div>`;
+      const finishCreate = () => {
+        const nm = ov.querySelector('#ac-name').value.trim();
+        const rl = ov.querySelector('#ac-role').value;
+        const pn = ov.querySelector('#ac-pin').value.trim();
+        const err = ov.querySelector('#ac-err');
+        err.style.display = 'none';
+        if (!nm) { err.textContent = 'Indiquez votre nom RP'; err.style.display = ''; return; }
+        if (!/^\d{4}$/.test(pn)) { err.textContent = 'Le PIN doit contenir 4 chiffres'; err.style.display = ''; return; }
+        if (accounts().some(s => String(s.pin) === pn)) { err.textContent = 'Ce PIN est déjà utilisé'; err.style.display = ''; return; }
+        const st = { id: Store.uid(), createdAt: new Date().toISOString().slice(0, 10), name: nm, nickname: '', role: rl, contact: '', pin: pn, status: 'Actif', notes: 'Compte créé sur tablette.' };
+        D().staff.unshift(st);
+        Store.log(`Compte créé sur tablette : ${nm} (${rl})`);
+        Store.save();
+        Store.setUser({ id: st.id, name: st.name, role: st.role || '' });
+        updateUserChip();
+        ov.style.display = 'none';
+        render();
+      };
+      ov.querySelector('#ac-ok').addEventListener('click', finishCreate);
+      ov.querySelectorAll('#ac-name,#ac-pin').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') finishCreate(); }));
+      const cancel = ov.querySelector('#ac-cancel');
+      if (cancel) cancel.addEventListener('click', () => { mode = 'list'; draw(); });
+      const skip = ov.querySelector('.auth-skip');
+      if (skip) skip.addEventListener('click', () => { Store.setUser(null); updateUserChip(); ov.style.display = 'none'; render(); });
     } else {
-      ov.querySelector('#auth-err').style.display = '';
-      inp.value = '';
+      ov.innerHTML = `
+        <div class="auth-card">
+          <img class="auth-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
+          <h3>Qui utilise la tablette ?</h3>
+          <div class="auth-list" id="auth-list">
+            ${list.map(s => `<button class="auth-user" data-id="${s.id}"><b>${esc(s.name)}</b><small>${esc(s.role || '')}</small></button>`).join('')}
+            <button class="auth-new" id="auth-new">+ Créer un nouveau compte</button>
+            <button class="auth-skip">Continuer sans compte</button>
+          </div>
+          <div class="auth-pin" id="auth-pinbox" style="display:none">
+            <p>Code de <b id="auth-name"></b></p>
+            <input type="password" inputmode="numeric" maxlength="4" id="auth-input" autocomplete="off">
+            <p class="auth-err" id="auth-err" style="display:none">Code incorrect</p>
+            <div class="auth-actions">
+              <button class="btn btn-outline btn-sm" id="auth-back">Retour</button>
+              <button class="btn btn-primary btn-sm" id="auth-ok">Valider</button>
+            </div>
+          </div>
+        </div>`;
+      ov.querySelectorAll('.auth-user').forEach(b => {
+        b.addEventListener('click', () => { selected = b; mode = 'pin'; ov.querySelector('#auth-list').style.display = 'none'; ov.querySelector('#auth-pinbox').style.display = ''; ov.querySelector('#auth-name').textContent = b.querySelector('b').textContent; setTimeout(() => { const i = ov.querySelector('#auth-input'); if (i) i.focus(); }, 50); });
+      });
+      ov.querySelector('#auth-new').addEventListener('click', () => { mode = 'create'; draw(); });
+      ov.querySelector('.auth-skip').addEventListener('click', () => { Store.setUser(null); updateUserChip(); ov.style.display = 'none'; render(); });
+      const tryPin = () => {
+        const inp = ov.querySelector('#auth-input');
+        const st = list.find(s => selected && s.id === selected.dataset.id);
+        if (st && inp.value.trim() === String(st.pin).trim()) {
+          Store.setUser({ id: st.id, name: st.name, role: st.role || '' });
+          updateUserChip();
+          ov.style.display = 'none';
+          render();
+        } else {
+          ov.querySelector('#auth-err').style.display = '';
+          inp.value = '';
+        }
+      };
+      ov.querySelector('#auth-back').addEventListener('click', () => { mode = 'list'; draw(); });
+      ov.querySelector('#auth-ok').addEventListener('click', tryPin);
+      ov.querySelector('#auth-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryPin(); });
     }
-  };
-  ov.querySelector('#auth-ok').addEventListener('click', tryPin);
-  ov.querySelector('#auth-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryPin(); });
+  }
+  draw();
 }
 
 document.addEventListener('pbafc:saved', () => { if (window.__pbafcReady) flashSaved(false); });
@@ -1592,6 +1643,8 @@ Store.pullRemote().then(remote => {
     Store._stable = null;
     Store.save();
     render();
+    const _ov = document.getElementById('auth-overlay');
+    if (_ov && _ov.style.display === 'grid') { _ov.remove(); showLogin(); }
   } else {
     Store.pushRemote();
   }
