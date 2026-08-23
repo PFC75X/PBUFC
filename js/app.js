@@ -1448,7 +1448,7 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v24';
+const APP_VERSION = 'v25';
 
 function curUser() { return Store.curUser(); }
 function canManage() {
@@ -1489,6 +1489,7 @@ function showLogin() {
     if (mode === 'create') {
       ov.innerHTML = `
         <div class="auth-card">
+          <div class="auth-kicker">PB Portal · Espace professionnel</div>
           <img class="auth-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
           <h3>${list.length ? 'Créer un compte' : 'Bienvenue au PBUFC'}</h3>
           <p class="auth-sub">${list.length ? 'Nouveau compte employé' : 'Aucun compte — créez le premier pour commencer'}</p>
@@ -1529,6 +1530,7 @@ function showLogin() {
     } else {
       ov.innerHTML = `
         <div class="auth-card">
+          <div class="auth-kicker">PB Portal · Espace professionnel</div>
           <img class="auth-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
           <h3>Qui utilise la tablette ?</h3>
           <div class="auth-list" id="auth-list">
