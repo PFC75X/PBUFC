@@ -565,6 +565,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
 #save-toast[data-mode="err"] .ic{color:#e5304a}
 #save-toast[data-mode="cloud"]{border-color:rgba(96,165,250,.5);color:#dbeafe}
 #save-toast[data-mode="cloud"] .ic{color:#60a5fa}
+#save-toast[data-mode="refresh"]{border-color:rgba(52,211,153,.55);color:#d1fae5}
+#save-toast[data-mode="refresh"] .ic{color:#34d399}
 #save-toast[data-mode="offline"]{border-color:rgba(245,158,11,.55);color:#fef3c7}
 #save-toast[data-mode="offline"] .ic{color:#f59e0b}
 #save-toast small{color:#7a8699;font-weight:400}
