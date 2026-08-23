@@ -4,7 +4,7 @@ const CATEGORIES = ['Poids paille', 'Poids mouche', 'Poids coq', 'Poids plume', 
 const FIGHTER_STATUS = ['Actif', 'Blessé', 'Suspendu', 'Retraité'];
 const STAFF_ROLES = ['Patron', 'Co-Patron', 'Fight Manager', 'Sécurité', 'Barman', 'Danseuse', 'Coach', 'Médecin', 'Autre'];
 const KO_METHODS = ['KO', 'TKO', 'Soumission'];
-const METHODS = [...KO_METHODS, 'Décision unanime', 'Décision split', 'Autre'];
+const METHODS = [...KO_METHODS, 'Décision unanime', 'Décision split', 'Abandon', 'Autre'];
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 const money = n => Number(n || 0).toLocaleString('fr-FR') + ' $';
@@ -13,7 +13,7 @@ const fmtDateTime = iso => new Date(iso).toLocaleString('fr-FR', { day: '2-digit
 
 function fighterById(id) { return D().fighters.find(f => f.id === id); }
 function fighterName(id) { const f = fighterById(id); return f ? f.name + (f.nickname ? ` « ${f.nickname} »` : '') : '—'; }
-function eventName(id) { const e = D().events.find(x => x.id === id); return e ? `FN #${e.number}` : '—'; }
+function eventName(id) { const e = D().events.find(x => x.id === id); return e ? `#${e.number} ${e.name.split('—')[1] || ''}` : '—'; }
 
 function avatar(f, size = 36) {
   if (!f) return `<span class="avatar avatar-txt" style="width:${size}px;height:${size}px">?</span>`;
@@ -29,9 +29,9 @@ function autoStats(fid) {
   let w = 0, l = 0, n = 0, ko = 0, pts = 0;
   D().fights.forEach(ft => {
     if (!ft.winnerId || (ft.f1Id !== fid && ft.f2Id !== fid)) return;
-    if (ft.winnerId === 'DRAW') { n++; pts += 1; return; }
-    if (ft.winnerId === fid) { w++; pts += KO_METHODS.includes(ft.method) ? 5 : 3; if (KO_METHODS.includes(ft.method)) ko++; }
-    else l++;
+    if (ft.winnerId === 'DRAW') { n++; return; }
+    if (ft.winnerId === fid) { w++; pts += ft.method === 'Abandon' ? 2 : 4; if (KO_METHODS.includes(ft.method)) ko++; }
+    else { l++; pts -= 4; }
   });
   return { w, l, n, ko, pts };
 }
@@ -67,6 +67,33 @@ function streakOf(res) {
 }
 const rankedState = { cat: '' };
 
+function teamById(tid) { return (D().teams || []).find(t => t.id === tid); }
+function teamName(tid) { const t = teamById(tid); return t ? t.name : '—'; }
+function teamStats(tid) {
+  let w = 0, l = 0, n = 0, pts = 0;
+  (D().tfights || []).forEach(f => {
+    if (!f.winnerId || (f.t1Id !== tid && f.t2Id !== tid)) return;
+    const sz = Math.max(1, Number(f.size || 1));
+    if (f.winnerId === 'DRAW') { n++; return; }
+    if (f.winnerId === tid) { w++; pts += 2 * sz; } else { l++; pts -= 2 * sz; }
+  });
+  const t = teamById(tid);
+  pts += Number(t?.bonus || 0);
+  return { w, l, n, pts };
+}
+function teamRanking() {
+  return D().teams.map(t => ({ t, s: teamStats(t.id) }))
+    .sort((a, b) => b.s.pts - a.s.pts || b.s.w - a.s.w || a.t.name.localeCompare(b.t.name));
+}
+function memberStack(ids, size = 26) {
+  const list = (ids || []).map(id => fighterById(id)).filter(Boolean);
+  return `<span class="avstack">${list.slice(0, 6).map(m => avatar(m, size)).join('')}${list.length > 6 ? `<span class="av-more" style="width:${size}px;height:${size}px">+${list.length - 6}</span>` : ''}</span>`;
+}
+function teamDot(tid) {
+  const t = teamById(tid);
+  return `<span class="team-dot" style="background:${esc(t?.color || '#e5304a')}"></span>${esc(t ? t.name : '—')}`;
+}
+
 function recettes() { return D().accounting.filter(a => a.type === 'Recette').reduce((s, a) => s + Number(a.amount || 0), 0); }
 function depenses() { return D().accounting.filter(a => a.type === 'Dépense').reduce((s, a) => s + Number(a.amount || 0), 0); }
 
@@ -87,20 +114,26 @@ function champLine() {
 const NAV = [
   { group: 'Tableau de bord', items: [{ id: 'dashboard', label: 'Vue générale' }] },
   {
-    group: 'Compétition', items: [
+    group: 'Fighting League', items: [
       { id: 'fighters', label: 'Combattants' },
       { id: 'ranked', label: 'Ranked' },
-      { id: 'classement', label: 'Classement' },
-      { id: 'championships', label: 'Championnat' },
-      { id: 'sanctions', label: 'Sanctions' },
-      { id: 'hof', label: 'Hall of Fame' }
+      { id: 'fights', label: 'Combats' }
     ]
   },
   {
-    group: 'Organisation', items: [
-      { id: 'events', label: 'Événements' },
-      { id: 'fights', label: 'Combats' },
-      { id: 'staff', label: 'Staff' }
+    group: 'Team Fighting League', items: [
+      { id: 'teams', label: 'Équipes' },
+      { id: 'tranked', label: 'TFL Ranking' },
+      { id: 'tfights', label: 'Combats TFL' }
+    ]
+  },
+  {
+    group: 'Le Club', items: [
+      { id: 'events', label: 'Galas & Soirées' },
+      { id: 'championships', label: 'Championnat' },
+      { id: 'staff', label: 'Staff' },
+      { id: 'sanctions', label: 'Sanctions' },
+      { id: 'hof', label: 'Hall of Fame' }
     ]
   },
   {
@@ -143,6 +176,36 @@ const SCHEMAS = {
     rowTitle: f => f.name
   },
 
+  teams: {
+    title: 'Équipes TFL', singular: 'Équipe', icon: '🛡️',
+    desc: 'Team Fighting League : enregistre les équipes qui s’affrontent en Team vs Team.',
+    columns: [
+      { label: 'Équipe', get: t => `<div class="cell-flex"><span class="team-dot" style="background:${esc(t.color || '#e5304a')}"></span><div><b>${esc(t.name)}</b>${t.tag ? ` <small class="muted">[${esc(t.tag)}]</small>` : ''}</div></div>` },
+      { label: 'Membres', get: t => memberStack(t.members) },
+      { label: 'Capitaine', get: t => esc(fighterName(t.captainId)) },
+      { label: 'Bilan TFL', get: t => { const s = teamStats(t.id); return `<span class="rec">${s.w}V</span> · <span class="gray">${s.l}D</span> · <span class="gray">${s.n}N</span>`; } },
+      { label: 'Points', get: t => `<b>${teamStats(t.id).pts}</b> pts` },
+      { label: 'Statut', get: t => badge(t.status || 'Actif', t.status === 'Actif' ? 'green' : t.status === 'Dissous' ? 'red' : 'gray') }
+    ],
+    fields: [
+      { key: 'name', label: 'Nom de l’équipe *', required: true },
+      { key: 'tag', label: 'Sigle', placeholder: 'ex : HBK' },
+      { key: 'color', label: 'Couleur', type: 'color', value: '#e5304a' },
+      { key: 'members', label: 'Membres (combattants licenciés)', type: 'members' },
+      { key: 'captainId', label: 'Capitaine', type: 'select', options: () => [{ v: '', l: '— Aucun —' }, ...D().fighters.map(f => ({ v: f.id, l: f.name }))] },
+      { key: 'status', label: 'Statut', type: 'select', options: ['Actif', 'Inactif', 'Dissous'] }
+    ],
+    actions: t => `<button class="row-btn" data-action="points" data-section="teams" data-id="${t.id}">Points</button>
+        <button class="row-btn" data-action="teamfiche" data-id="${t.id}">Fiche</button>`,
+    onSave(item, isNew) {
+      if (isNew) {
+        item.createdAt = new Date().toISOString().slice(0, 10);
+        Store.log(`Nouvelle équipe TFL : ${item.name}${item.members?.length ? ` (${item.members.length} membre(s))` : ''}`);
+      }
+    },
+    rowTitle: t => t.name
+  },
+
   staff: {
     title: 'Staff', singular: 'Membre du staff', icon: '🕴️',
     desc: 'Organisation interne du club.',
@@ -164,7 +227,7 @@ const SCHEMAS = {
 
   fights: {
     title: 'Combats', singular: 'Combat', icon: '🤜',
-    desc: 'Enregistrer un résultat met à jour automatiquement palmarès et classement (+5 pts KO/TKO/Soumission, +3 décision, +1 nul).',
+    desc: 'Fighting League (1 vs 1). Enregistrer un résultat met à jour automatiquement le Ranked : victoire +4, défaite −4, nul 0, abandon adverse +2.',
     columns: [
       { label: 'Date', get: ft => fmtDate(ft.date) },
       { label: 'Combat', get: ft => `<b>${esc(fighterName(ft.f1Id))}</b><br>vs <b>${esc(fighterName(ft.f2Id))}</b>` },
@@ -175,7 +238,7 @@ const SCHEMAS = {
       { label: 'Notes', get: ft => ft.notes ? `<small>${esc(ft.notes)}</small>` : '—' }
     ],
     fields: [
-      { key: 'eventId', label: 'Événement', type: 'select', options: () => D().events.map(e => ({ v: e.id, l: `FN #${e.number} — ${e.name}` })) },
+      { key: 'eventId', label: 'Événement', type: 'select', options: () => D().events.map(e => ({ v: e.id, l: `#${e.number} — ${e.name}` })) },
       { key: 'date', label: 'Date', type: 'date' },
       { key: 'f1Id', label: 'Combattant 1 *', type: 'select', options: () => D().fighters.map(f => ({ v: f.id, l: f.name })), required: true },
       { key: 'f2Id', label: 'Combattant 2 *', type: 'select', options: () => D().fighters.map(f => ({ v: f.id, l: f.name })), required: true },
@@ -192,12 +255,43 @@ const SCHEMAS = {
     rowTitle: ft => `${fighterName(ft.f1Id)} vs ${fighterName(ft.f2Id)}`
   },
 
+  tfights: {
+    title: 'Combats TFL', singular: 'Combat TFL', icon: '⚔️',
+    desc: 'Team Fighting League (équipe vs équipe). Victoire : +2 pts par combattant dans l’arène · défaite : −2 pts par combattant.',
+    columns: [
+      { label: 'Date', get: f => fmtDate(f.date) },
+      { label: 'Affiche', get: f => `<div class="cell-flex"><span class="team-dot" style="background:${esc(teamById(f.t1Id)?.color || '#e5304a')}"></span><b>${esc(teamName(f.t1Id))}</b><small class="muted">&nbsp;vs&nbsp;</small><span class="team-dot" style="background:${esc(teamById(f.t2Id)?.color || '#3d6fe5')}"></span><b>${esc(teamName(f.t2Id))}</b></div>` },
+      { label: 'Arène', get: f => `<b>${f.size || 1}</b> v <b>${f.size || 1}</b>` },
+      { label: 'Événement', get: f => f.eventId ? esc(eventName(f.eventId)) : '<small class="muted">Hors gala</small>' },
+      { label: 'Résultat', get: f => !f.winnerId ? badge('À venir', 'blue') : f.winnerId === 'DRAW' ? badge('Match nul', 'orange') : `<div class="cell-flex"><span class="team-dot" style="background:${esc(teamById(f.winnerId)?.color || '#e5304a')}"></span><b>${esc(teamName(f.winnerId))} gagne</b></div>` },
+      { label: 'Points', get: f => { if (!f.winnerId || f.winnerId === 'DRAW') return '—'; const sz = Math.max(1, Number(f.size || 1)); return `<span class="rec">+${2 * sz}</span> / <span class="exp">−${2 * sz}</span>`; } },
+      { label: 'Notes', get: f => f.notes ? `<small>${esc(f.notes)}</small>` : '—' }
+    ],
+    fields: [
+      { key: 'eventId', label: 'Événement', type: 'select', options: () => D().events.map(e => ({ v: e.id, l: `#${e.number} — ${e.name}` })) },
+      { key: 'date', label: 'Date', type: 'date' },
+      { key: 't1Id', label: 'Équipe 1 *', type: 'select', options: () => D().teams.map(t => ({ v: t.id, l: t.name })), required: true },
+      { key: 't2Id', label: 'Équipe 2 *', type: 'select', options: () => D().teams.map(t => ({ v: t.id, l: t.name })), required: true },
+      { key: 'size', label: 'Combattants par équipe dans l’arène *', type: 'number', value: 3, required: true },
+      { key: 'winnerId', label: 'Vainqueur', type: 'select', options: () => [{ v: '', l: '— Combat à venir / non tranché —' }, ...D().teams.map(t => ({ v: t.id, l: t.name })), { v: 'DRAW', l: 'MATCH NUL' }] },
+      { key: 'referee', label: 'Arbitre' },
+      { key: 'notes', label: 'Notes', type: 'textarea' }
+    ],
+    onSave(item, isNew) {
+      if (isNew && item.winnerId && item.winnerId !== 'DRAW') {
+        const sz = Math.max(1, Number(item.size || 1));
+        Store.log(`TFL : ${teamName(item.t1Id)} vs ${teamName(item.t2Id)} → ${teamName(item.winnerId)} gagne (${sz} v ${sz}, ±${2 * sz} pts)`);
+      }
+    },
+    rowTitle: f => `${teamName(f.t1Id)} vs ${teamName(f.t2Id)}`
+  },
+
   events: {
     title: 'Événements', singular: 'Événement', icon: '📅',
-    desc: 'Galas Fight Night : carte des combats, horaires, main event et co-main event.',
+    desc: 'Galas Fight Night (avec enjeux) et soirées hors-enjeux : carte des combats, horaires, main event.',
     columns: [
       { label: '#', get: e => `<b class="mono">#${esc(e.number)}</b>` },
-      { label: 'Nom', get: e => `<b>${esc(e.name)}</b>${e.notes ? `<br><small class="muted">${esc(e.notes)}</small>` : ''}` },
+      { label: 'Nom', get: e => `<b>${esc(e.name)}</b> ${badge(e.type || 'Gala', e.type === 'Soirée' ? 'purple' : 'gold')}${e.notes ? `<br><small class="muted">${esc(e.notes)}</small>` : ''}` },
       { label: 'Date & heure', get: e => `${fmtDate(e.date)}<br><small class="muted">${esc(e.time || '')}</small>` },
       { label: 'Lieu', get: e => esc(e.location || '—') },
       { label: 'Carte', get: e => { const n = D().fights.filter(f => f.eventId === e.id).length; const me = D().fights.find(f => f.eventId === e.id && f.importance === 'Main Event'); return `${n} combat(s)${me ? `<br><small class="gold">★ ME : ${esc(fighterName(me.f1Id))} vs ${esc(fighterName(me.f2Id))}</small>` : ''}`; } },
@@ -205,7 +299,8 @@ const SCHEMAS = {
     ],
     fields: [
       { key: 'number', label: 'Numéro FN (vide = auto)', placeholder: 'ex : 009' },
-      { key: 'name', label: 'Nom du gala *', required: true },
+      { key: 'name', label: 'Nom de l’événement *', required: true },
+      { key: 'type', label: 'Type', type: 'select', options: ['Gala', 'Soirée'] },
       { key: 'date', label: 'Date', type: 'date' },
       { key: 'time', label: 'Heure début' },
       { key: 'location', label: 'Lieu' },
@@ -415,13 +510,14 @@ const CUSTOM_VIEWS = {
 
     return `
       <section class="hero">
-        <p class="hero-kicker">Panel officiel · Saison 2026</p>
-        <h2 class="hero-title">Iron <em>Fight Club</em></h2>
-        <p class="hero-sub">${next ? `Prochain gala : FN #${esc(next.number)} — ${fmtDate(next.date)}, ${esc(next.location || 'lieu à confirmer')}.` : 'Aucun gala planifié pour le moment.'}</p>
+        <p class="hero-kicker">PlayBoy Underground Fight Club · Panel officiel</p>
+        <h2 class="hero-title">PB<em>UFC</em></h2>
+        <p class="hero-sub">${next ? `Prochaine ${next.type === 'Soirée' ? 'soirée hors-enjeux' : 'nuit de combat'} : #${esc(next.number)} ${esc(next.name)} — ${fmtDate(next.date)}, ${esc(next.location || 'lieu à confirmer')}.` : 'Aucun événement planifié pour le moment.'}</p>
       </section>
       <div class="stat-row">
-        <div class="stat-card"><small>Prochain gala</small><b>${next ? `FN #${esc(next.number)}` : '—'}</b><small>${next ? fmtDate(next.date) : 'aucun planifié'}</small></div>
-        <div class="stat-card"><small>Combattants actifs</small><b>${activeFighters}</b><small>sur ${D().fighters.length} licenciés</small></div>
+        <div class="stat-card"><small>Prochain événement</small><b>${next ? `#${esc(next.number)}` : '—'}</b><small>${next ? `${next.type === 'Soirée' ? 'Soirée' : 'Gala'} · ${fmtDate(next.date)}` : 'aucun planifié'}</small></div>
+        <div class="stat-card"><small>Combattants actifs</small><b>${activeFighters}</b><small>sur ${D().fighters.length} licenciés PBUFC</small></div>
+        <div class="stat-card purple"><small>Équipes TFL</small><b>${D().teams.filter(t => t.status !== 'Dissous').length}</b><small>${D().tfights.length} combat(s) d’équipe</small></div>
         <div class="stat-card"><small>Ceintures en jeu</small><b>${D().championships.length}</b><small>${champLine().replace(/<[^>]+>/g, '').split(':').length - 1} champions titrés</small></div>
         <div class="stat-card ${r - d >= 0 ? 'green' : 'red'}"><small>Solde du club</small><b>${money(r - d)}</b><small>+${money(r)} / −${money(d)}</small></div>
       </div>
@@ -432,20 +528,31 @@ const CUSTOM_VIEWS = {
           ${nextEvents().slice(0, 4).map(e => `
             <div class="list-item">
               <span class="mono gold">#${esc(e.number)}</span>
-              <div style="flex:1"><b>${esc(e.name.split('—')[1] || e.name)}</b><br><small class="muted">${fmtDate(e.date)} · ${esc(e.time || '')} · ${esc(e.location)}</small></div>
+              <div style="flex:1"><b>${esc(e.name.split('—')[1] || e.name)}</b> <small class="muted">${esc(e.type || 'Gala')}</small><br><small class="muted">${fmtDate(e.date)} · ${esc(e.time || '')} · ${esc(e.location)}</small></div>
               <button class="btn btn-ghost btn-sm" data-action="goto" data-target="#events">Ouvrir</button>
             </div>`).join('') || '<p class="muted">Aucun événement à venir.</p>'}
         </section>
 
         <section class="panel">
-          <h3>Top 5 — Classement</h3>
+          <h3>Top 5 — Fighting League</h3>
           ${top5.map((row, i) => `
             <div class="list-item">
               <span class="rank r-${i + 1}">${i + 1}</span>
               <div style="flex:1"><b>${esc(row.f.name)}</b> <small class="muted">${esc(row.f.category)}</small></div>
               <span class="pts">${row.s.pts} pts <small class="muted">(${row.s.w}V-${row.s.l}D)</small></span>
             </div>`).join('')}
-          <button class="btn btn-ghost btn-sm full-w" data-action="goto" data-target="#classement">Voir tout le classement →</button>
+          <button class="btn btn-ghost btn-sm full-w" data-action="goto" data-target="#ranked">Voir le Ranked FL →</button>
+        </section>
+
+        <section class="panel">
+          <h3>Top équipes — Team Fighting League</h3>
+          ${teamRanking().slice(0, 5).map((row, i) => `
+            <div class="list-item">
+              <span class="rank r-${i + 1}">${i + 1}</span>
+              <div style="flex:1"><span class="team-dot" style="background:${esc(row.t.color || '#e5304a')}"></span><b>${esc(row.t.name)}</b> <small class="muted">${row.t.members?.length || 0} membre(s)</small></div>
+              <span class="pts">${row.s.pts} pts <small class="muted">(${row.s.w}V-${row.s.l}D)</small></span>
+            </div>`).join('') || '<p class="muted">Aucune équipe enregistrée.</p>'}
+          <button class="btn btn-ghost btn-sm full-w" data-action="goto" data-target="#tranked">Voir le TFL Ranking →</button>
         </section>
 
         <section class="panel">
@@ -498,7 +605,7 @@ const CUSTOM_VIEWS = {
 
     return `
       <div class="section-head">
-        <div><h2>Ranked PBUFC</h2><p class="muted">Gestion du classement : ajustez points et palmarès manuellement, suivez la forme et les séries.</p></div>
+        <div><h2>Ranked — Fighting League</h2><p class="muted">Barème : victoire <b class="rec">+4</b> · défaite <b class="exp">−4</b> · nul 0 · abandon adverse <b class="rec">+2</b>. Ajustez points et palmarès manuellement, suivez la forme.</p></div>
         <button class="btn btn-outline btn-sm" data-action="close-season">Clôturer la saison</button>
       </div>
 
@@ -524,7 +631,7 @@ const CUSTOM_VIEWS = {
             const fm = res.slice(-5);
             const st = streakOf(res);
             const autoPts = s.pts - s.bonus;
-            const pct = Math.max(2, Math.round(s.pts / maxPts * 100));
+            const pct = Math.max(0, Math.round(s.pts / maxPts * 100));
             return `
             <tr>
               <td><span class="rank r-${posOf[f.id]}">${posOf[f.id]}</span></td>
@@ -535,8 +642,7 @@ const CUSTOM_VIEWS = {
               <td><span class="rec">${s.w}</span>-<span class="gray">${s.l}</span>-<span class="gray">${s.n}</span></td>
               <td>${s.ko}</td>
               <td><small class="muted">auto ${autoPts}</small>${s.bonus ? ` · <small class="gold">ajusté ${s.bonus > 0 ? '+' : ''}${s.bonus}</small>` : ''}</td>
-              <td style="min-width:120px"><b class="gold" style="font-size:1.05rem">${s.pts}</b><div class="bar"><i style="width:${pct}%"></i></div></td>
-              <td class="actions-cell">
+              <td style="min-width:120px"><b class="gold" style="font-size:1.05rem">${s.pts}</b><div class="bar"><i style="width:${pct}%"></i></div></td>              <td class="actions-cell">
                 <button class="row-btn ok" data-action="points" data-section="fighters" data-id="${f.id}">Points</button>
                 <button class="row-btn" data-action="record" data-id="${f.id}">Record</button>
               </td>
@@ -553,40 +659,84 @@ const CUSTOM_VIEWS = {
             <ol class="season-list">
               ${se.top.slice(0, 5).map(t => `<li><b>${esc(t.name)}</b> <small class="muted">${esc(t.pbufc)}</small> — <span class="gold">${t.pts} pts</span> <small class="muted">(${t.w}V-${t.l}D)</small></li>`).join('')}
             </ol>
+            ${se.teams && se.teams.length ? `<p class="small" style="margin:8px 0 2px"><b>Équipes TFL :</b></p><ol class="season-list">
+              ${se.teams.slice(0, 5).map(t => `<li><b>${esc(t.name)}</b>${t.tag ? ` <small class="muted">[${esc(t.tag)}]</small>` : ''} — <span class="gold">${t.pts} pts</span> <small class="muted">(${t.w}V-${t.l}D)</small></li>`).join('')}
+            </ol>` : ''}
           </div>`).join('')}
       </details>` : ''}`;
   },
 
-  classement() {
-    const rows = ranking();
-    const champIds = D().championships.map(c => c.championId);
+  teams() {
+    const list = teamRanking();
     return `
-      <div class="panel rules-panel">
-        <b>Système de points — calcul automatique</b>
-        <span>Victoire par KO / TKO / Soumission : <b class="gold">+5 pts</b></span>
-        <span>Victoire par décision : <b>+3 pts</b></span>
-        <span>Match nul : <b>+1 pt</b></span>
-        <span>Défaite : <b class="muted">0 pt</b></span>
-        <span>Bonus / malus manuels (direction) : inclus au total — bouton « Points » sur les fiches</span><button class="btn btn-ghost btn-sm" data-route="ranked">Ouvrir Ranked</button>
+      <div class="section-head">
+        <div><h2>Équipes — Team Fighting League</h2><p class="muted">Enregistre les équipes, compose les rosters et suis leurs points TFL.</p></div>
+        <button class="btn btn-primary" data-action="add" data-section="teams">+ Ajouter une équipe</button>
       </div>
-      <div class="table-wrap panel">
-        <table>
-          <thead><tr><th>#</th><th>Combattant</th><th>Licence</th><th>Catégorie</th><th>V-D-N</th><th>Finitions</th><th>Points</th><th>Statut</th></tr></thead>
-          <tbody>
-            ${rows.map(({ f, s }, i) => `
-              <tr class="${champIds.includes(f.id) ? 'champ-row' : ''}">
-                <td><span class="rank r-${i + 1}">${i + 1}</span></td>
-                <td><div class="cell-flex">${avatar(f)}<b>${esc(f.name)}</b>${champIds.includes(f.id) ? '<span class="mini-tag">Champion</span>' : ''}</div></td>
-                <td><small class="mono muted">${esc(f.pbufc)}</small></td>
-                <td>${esc(f.category)}</td>
-                <td><span class="rec">${s.w}</span>-<span class="gray">${s.l}</span>-<span class="gray">${s.n}</span></td>
-                <td>${s.ko} KO/Sub</td>
-                <td><b class="gold">${s.pts}</b></td>
-                <td>${badge(f.status, STATUS_COLORS[f.status] || 'gray')}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
+      <div class="team-cards">
+        ${list.map(({ t, s }) => `
+          <div class="team-card" style="--tc:${esc(t.color || '#e5304a')}">
+            <div class="tc-head">
+              <span class="tc-tag">${esc(t.tag || t.name.slice(0, 3).toUpperCase())}</span>
+              ${badge(t.status || 'Actif', t.status === 'Actif' ? 'green' : t.status === 'Dissous' ? 'red' : 'gray')}
+              <b class="tc-pts">${s.pts}<small>pts</small></b>
+            </div>
+            <h4>${esc(t.name)}</h4>
+            <p class="muted small" style="margin:0 0 10px">Capitaine : <b>${esc(fighterName(t.captainId))}</b> · ${(t.members || []).length} membre(s)</p>
+            ${memberStack(t.members, 30)}
+            <div class="tc-foot">
+              <span class="rec">${s.w}V</span> · <span class="gray">${s.l}D</span> · <span class="gray">${s.n}N</span>
+              <span class="tc-actions">
+                <button class="row-btn ok" data-action="teamfiche" data-id="${t.id}">Fiche</button>
+                <button class="row-btn" data-action="edit" data-section="teams" data-id="${t.id}">Modifier</button>
+                <button class="row-btn danger" data-action="del" data-section="teams" data-id="${t.id}">Supprimer</button>
+              </span>
+            </div>
+          </div>`).join('')}
+        ${list.length ? '' : '<p class="muted">Aucune équipe. Clique sur « Ajouter une équipe » pour créer la première.</p>'}
       </div>`;
+  },
+
+  tranked() {
+    const rows = teamRanking();
+    const maxPts = Math.max(1, ...rows.map(r => r.s.pts));
+    const podium = rows.slice(0, 3).map((r, i) => `
+      <div class="pod-card p${i + 1}" style="--pc:${esc(r.t.color || '#e5304a')}">
+        <span class="pod-place">${i + 1}</span>
+        <span class="tc-tag big">${esc(r.t.tag || r.t.name.slice(0, 3).toUpperCase())}</span>
+        <div><b>${esc(r.t.name)}</b><small class="muted">${(r.t.members || []).length} membre(s) · cap. ${esc(fighterName(r.t.captainId))}</small></div>
+        <b class="pod-pts">${r.s.pts}<small>pts</small></b>
+      </div>`).join('');
+    return `
+      <div class="section-head">
+        <div><h2>TFL Ranking</h2><p class="muted">Classement des équipes. Barème : victoire <b class="rec">+2 pts / combattant dans l’arène</b> · défaite <b class="exp">−2 pts / combattant</b>.</p></div>
+      </div>
+      <div class="podium">${podium}</div>
+      <input class="search-input" placeholder="Rechercher une équipe…" data-filter-table="tranked">
+      <div class="table-wrap panel"><table data-tbody-for="tranked">
+        <thead><tr>
+          <th>#</th><th>Équipe</th><th>Membres</th><th>V-D-N</th><th>Détail points</th><th>Total</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(({ t, s }, i) => {
+            const pct = Math.max(0, Math.round(s.pts / maxPts * 100));
+            return `
+            <tr>
+              <td><span class="rank r-${i + 1}">${i + 1}</span></td>
+              <td><div class="cell-flex"><span class="team-dot" style="background:${esc(t.color || '#e5304a')}"></span><div><b>${esc(t.name)}</b>${t.tag ? ` <small class="muted">[${esc(t.tag)}]</small>` : ''}</div></div></td>
+              <td>${memberStack(t.members, 24)}</td>
+              <td><span class="rec">${s.w}</span>-<span class="gray">${s.l}</span>-<span class="gray">${s.n}</span></td>
+              <td><small class="muted">combats ${s.pts - (Number(t.bonus) || 0)}</small>${Number(t.bonus) ? ` · <small class="gold">ajusté ${Number(t.bonus) > 0 ? '+' : ''}${t.bonus}</small>` : ''}</td>
+              <td style="min-width:120px"><b class="gold" style="font-size:1.05rem">${s.pts}</b><div class="bar"><i style="width:${pct}%"></i></div></td>
+              <td class="actions-cell">
+                <button class="row-btn ok" data-action="points" data-section="teams" data-id="${t.id}">Points</button>
+                <button class="row-btn" data-action="teamfiche" data-id="${t.id}">Fiche</button>
+              </td>
+            </tr>`;
+          }).join('')}
+          ${rows.length ? '' : '<tr><td colspan="7" class="muted center">Aucune équipe enregistrée.</td></tr>'}
+        </tbody>
+      </table></div>`;
   },
 
   historique() {
@@ -704,9 +854,17 @@ function fieldHtml(f, item) {
     case 'date': input = `<input type="date" name="${f.key}" value="${esc(val)}">`; break;
     case 'number': input = `<input type="number" name="${f.key}" value="${esc(val)}" step="any">`; break;
     case 'checkbox': input = `<input type="checkbox" name="${f.key}" ${val === true || val === 'on' ? 'checked' : ''} style="transform:scale(1.4)">`; break;
+    case 'color': input = `<input type="color" name="${f.key}" value="${esc(val || f.value || '#e5304a')}">`; break;
+    case 'members': {
+      const cur = Array.isArray(val) ? val : [];
+      input = D().fighters.length ? `<div class="members-grid">${D().fighters.map(m => `
+        <label class="member-pick ${cur.includes(m.id) ? 'on' : ''}"><input type="checkbox" name="members" value="${m.id}" ${cur.includes(m.id) ? 'checked' : ''}>${avatar(m, 22)}<span>${esc(m.name)}</span></label>`).join('')}</div>`
+        : '<p class="muted small" style="grid-column:1/-1;margin:0">Enregistre d’abord des combattants pour composer l’équipe.</p>';
+      return `<div class="field field-wide"><span>${f.label}</span>${input}</div>`;
+    }
     default: input = `<input type="text" name="${f.key}" value="${esc(val)}" ${f.required ? 'required' : ''} placeholder="${esc(f.placeholder || '')}">`;
   }
-  return `<label class="field"><span>${f.label}</span>${input}</label>`;
+  return `<label class="field ${f.type === 'members' ? 'field-wide' : ''}"><span>${f.label}</span>${input}</label>`;
 }
 
 function openForm(section, id) {
@@ -733,6 +891,7 @@ function submitEntityForm(ev) {
   const s = SCHEMAS[section];
   const values = {};
   s.fields.forEach(f => {
+    if (f.type === 'members') { values[f.key] = [...form.querySelectorAll('input[name="members"]:checked')].map(i => i.value); return; }
     const el = form.elements[f.key];
     if (!el) return;
     values[f.key] = f.type === 'checkbox' ? el.checked : el.value.trim();
@@ -751,6 +910,59 @@ function submitEntityForm(ev) {
   if (!id) Store.log(`${s.singular} ajouté(e) : ${typeof s.rowTitle === 'function' ? s.rowTitle(item) : item.name || item.label || item.belt || ''}`);
   Store.save();
   closeModal();
+  render();
+}
+
+function openTeamFiche(id) {
+  const t = teamById(id);
+  if (!t) return;
+  const s = teamStats(id);
+  const roster = (t.members || []).map(mid => fighterById(mid)).filter(Boolean);
+  const hist = D().tfights.filter(f => f.t1Id === id || f.t2Id === id)
+    .sort((a, b) => String(b.date).localeCompare(a.date));
+  showModal(`
+    <div class="team-banner" style="--tc:${esc(t.color || '#e5304a')}">
+      <span class="tc-tag big">${esc(t.tag || t.name.slice(0, 3).toUpperCase())}</span>
+      <h3 style="margin:0">${esc(t.name)}</h3>
+    </div>
+    <p class="muted small">Capitaine : <b>${esc(fighterName(t.captainId))}</b> · Statut : ${esc(t.status || 'Actif')} · Créée le ${fmtDate(t.createdAt)}</p>
+    <div class="stat-row">
+      <div class="stat-card gold-b"><small>Points TFL</small><b>${s.pts}</b></div>
+      <div class="stat-card"><small>Bilan</small><b>${s.w}V – ${s.l}D – ${s.n}N</b></div>
+      <div class="stat-card"><small>Membres</small><b>${roster.length}</b></div>
+    </div>
+    <h4>Effectif</h4>
+    <div class="card-list">
+      ${roster.map(m => { const ms = stats(m.id); return `
+        <div class="list-item">
+          ${avatar(m, 34)}
+          <div style="flex:1"><b>${esc(m.name)}</b> <small class="muted">${esc(m.category || '')}${m.id === t.captainId ? ' · 🅲 capitaine' : ''}</small></div>
+          <span class="pts">${ms.w}V-${ms.l}D <small class="muted">FL ${ms.pts} pts</small></span>
+        </div>`; }).join('') || '<p class="muted small">Aucun membre enregistré.</p>'}
+    </div>
+    <h4>Combats TFL (${hist.length})</h4>
+    <div class="card-list" style="max-height:220px;overflow:auto">
+      ${hist.map(f => {
+        const win = !f.winnerId ? null : f.winnerId === 'DRAW' ? 'n' : f.winnerId === id ? 'w' : 'l';
+        const res = win === 'w' ? '<b class="rec">V</b>' : win === 'l' ? '<b class="exp">D</b>' : win === 'n' ? '<b>N</b>' : '<span class="muted">—</span>';
+        return `<div class="fight-line"><span>${res}</span><div style="flex:1"><b>${esc(teamName(f.t1Id))}</b> vs <b>${esc(teamName(f.t2Id))}</b><br><small class="muted">${fmtDate(f.date)}${f.size ? ` · ${f.size} v ${f.size}` : ''}</small></div><span>${win === 'w' ? `<span class="rec">+${2 * Math.max(1, Number(f.size || 1))}</span>` : win === 'l' ? `<span class="exp">−${2 * Math.max(1, Number(f.size || 1))}</span>` : ''}</span></div>`;
+      }).join('') || '<p class="muted small">Aucun combat d’équipe.</p>'}
+    </div>
+    ${(t.pointsLog && t.pointsLog.length) ? `<h4>Ajustements de points</h4>${t.pointsLog.map(p => `<p class="small">• ${fmtDate(p.time)} — <b class="${p.delta > 0 ? 'rec' : 'exp'}">${p.delta > 0 ? '+' : ''}${p.delta} pt(s)</b> : ${esc(p.reason)}</p>`).join('')}` : ''}
+    <div class="modal-actions"><button class="btn btn-outline" data-action="close-modal">Fermer</button></div>
+  `);
+}
+
+function closeSeason() {
+  if (!confirm('Clôturer la saison ?\n\nLes tops 10 FL et équipes TFL seront archivés et tous les ajustements manuels remis à zéro.')) return;
+  D().seasons = D().seasons || [];
+  const topF = ranking().slice(0, 10).map(r => { const s = stats(r.f.id); return { name: r.f.name, pbufc: r.f.pbufc, pts: s.pts, w: s.w, l: s.l }; });
+  const topT = teamRanking().slice(0, 10).map(r => { return { name: r.t.name, tag: r.t.tag || '', pts: r.s.pts, w: r.s.w, l: r.s.l }; });
+  D().seasons.unshift({ id: Store.uid(), closedAt: new Date().toISOString().slice(0, 10), top: topF, teams: topT });
+  D().fighters.forEach(f => { f.bonus = 0; f.adj = {}; });
+  D().teams.forEach(t => { t.bonus = 0; });
+  Store.log(`Saison clôturée — top ${topF.length} combattants + top ${topT.length} équipes archivés, ajustements remis à zéro`);
+  Store.save();
   render();
 }
 
@@ -892,7 +1104,7 @@ function openCarte(eventId) {
   fights.sort((a, b) => (order[a.importance] ?? 3) - (order[b.importance] ?? 3));
 
   showModal(`
-    <h3>Carte — FN #${esc(e.number)} ${esc(e.name.split('—')[1] || '')}</h3>
+    <h3>Carte — #${esc(e.number)} ${esc(e.name.split('—')[1] || '')} ${badge(e.type || 'Gala', e.type === 'Soirée' ? 'purple' : 'gold')}</h3>
     <p class="muted small">${fmtDate(e.date)} · ${esc(e.time || '')} · ${esc(e.location || '')}</p>
     <div class="card-list">
       ${fights.map(f => `
@@ -906,14 +1118,15 @@ function openCarte(eventId) {
   `);
 }
 
-function openPoints(id) {
-  const f = fighterById(id);
+function openPoints(section, id) {
+  const isTeam = section === 'teams';
+  const f = isTeam ? teamById(id) : fighterById(id);
   if (!f) return;
-  const au = autoStats(id);
+  const autoPts = isTeam ? (teamStats(id).pts - (Number(f.bonus) || 0)) : autoStats(id).pts;
   showModal(`
-    <h3>Ajustement de points — ${esc(f.name)}</h3>
-    <p class="muted small">Palmarès automatique : <b>${au.pts} pts</b>${Number(f.bonus) ? ` · ajustement actuel : <b>${Number(f.bonus) > 0 ? '+' : ''}${Number(f.bonus)}</b>` : ' · aucun ajustement manuel'}</p>
-    <form id="points-form" data-id="${id}">
+    <h3>Ajustement de points — ${esc(f.name)}${isTeam ? ' <small class="muted">(équipe TFL)</small>' : ''}</h3>
+    <p class="muted small">Points automatiques : <b>${autoPts} pts</b>${Number(f.bonus) ? ` · ajustement actuel : <b>${Number(f.bonus) > 0 ? '+' : ''}${Number(f.bonus)}</b>` : ' · aucun ajustement manuel'}</p>
+    <form id="points-form" data-id="${id}" data-section="${section}">
       <div class="form-grid">
         <label class="field"><span>Action</span>
           <select name="dir">
@@ -935,7 +1148,8 @@ function openPoints(id) {
 function submitPoints(ev) {
   ev.preventDefault();
   const form = ev.currentTarget;
-  const f = fighterById(form.dataset.id);
+  const section = form.dataset.section;
+  const f = section === 'teams' ? teamById(form.dataset.id) : fighterById(form.dataset.id);
   if (!f) return;
   const dir = Number(form.elements.dir.value);
   const amt = Math.abs(Number(form.elements.amt.value));
@@ -943,7 +1157,7 @@ function submitPoints(ev) {
   if (!amt || !reason) return;
   f.bonus = (Number(f.bonus) || 0) + dir * amt;
   f.pointsLog = [{ time: new Date().toISOString(), delta: dir * amt, reason }, ...(f.pointsLog || [])].slice(0, 50);
-  Store.log(`Points ${dir * amt > 0 ? '+' : ''}${dir * amt} pour ${f.name} — ${reason}`);
+  Store.log(`Points ${dir * amt > 0 ? '+' : ''}${dir * amt} pour ${f.name}${section === 'teams' ? ' (équipe)' : ''} — ${reason}`);
   Store.save();
   closeModal();
   render();
@@ -1032,8 +1246,9 @@ document.addEventListener('click', e => {
     case 'del': deleteItem(section, id); break;
     case 'fiche': openFiche(id); break;
     case 'carte': openCarte(id); break;
-    case 'points': openPoints(id); break;
+    case 'points': openPoints(section, id); break;
     case 'record': openRecord(id); break;
+    case 'teamfiche': openTeamFiche(id); break;
     case 'close-season': closeSeason(); break;
     case 'close-modal': closeModal(); break;
     case 'export': exportJSON(); break;
