@@ -12,7 +12,7 @@ let acMonth = '';
 const KO_METHODS = ['KO', 'TKO', 'Soumission'];
 const METHODS = [...KO_METHODS, 'Décision unanime', 'Décision split', 'Abandon', 'Autre'];
 
-const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 const money = n => Number(n || 0).toLocaleString('fr-FR') + ' $';
 const fmtDate = d => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt) ? d : dt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); };
 const fmtDateTime = iso => new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -45,11 +45,11 @@ function autoStats(fid) {
 function stats(fid) {
   const s = autoStats(fid);
   const bf = fighterById(fid);
-  const adj = bf?.adj || {};
+  const adj = (bf && bf.adj) || {};
   s.adj = { w: Number(adj.w || 0), l: Number(adj.l || 0), n: Number(adj.n || 0), ko: Number(adj.ko || 0) };
   s.aw = s.w; s.al = s.l; s.an = s.n; s.ak = s.ko;
   s.w += s.adj.w; s.l += s.adj.l; s.n += s.adj.n; s.ko += s.adj.ko;
-  s.bonus = Number(bf?.bonus || 0);
+  s.bonus = Number((bf && bf.bonus) || 0);
   s.pts += s.bonus;
   return s;
 }
@@ -84,7 +84,7 @@ function teamStats(tid) {
     if (f.winnerId === tid) { w++; pts += 2 * sz; } else { l++; pts -= 2 * sz; }
   });
   const t = teamById(tid);
-  pts += Number(t?.bonus || 0);
+  pts += Number((t && t.bonus) || 0);
   return { w, l, n, pts };
 }
 function teamRanking() {
@@ -97,7 +97,7 @@ function memberStack(ids, size = 26) {
 }
 function teamDot(tid) {
   const t = teamById(tid);
-  return `<span class="team-dot" style="background:${esc(t?.color || '#e5304a')}"></span>${esc(t ? t.name : '—')}`;
+  return `<span class="team-dot" style="background:${esc((t && t.color) || '#e5304a')}"></span>${esc(t ? t.name : '—')}`;
 }
 
 function recettes() { return D().accounting.filter(a => a.type === 'Recette').reduce((s, a) => s + Number(a.amount || 0), 0); }
@@ -206,7 +206,7 @@ const SCHEMAS = {
     onSave(item, isNew) {
       if (isNew) {
         item.createdAt = new Date().toISOString().slice(0, 10);
-        Store.log(`Nouvelle équipe TFL : ${item.name}${item.members?.length ? ` (${item.members.length} membre(s))` : ''}`);
+        Store.log(`Nouvelle équipe TFL : ${item.name}${item.members && item.members.length ? ` (${item.members.length} membre(s))` : ''}`);
       }
     },
     rowTitle: t => t.name
@@ -270,10 +270,10 @@ const SCHEMAS = {
     desc: 'Team Fighting League (équipe vs équipe). Victoire : +2 pts par combattant dans l’arène · défaite : −2 pts par combattant.',
     columns: [
       { label: 'Date', get: f => fmtDate(f.date) },
-      { label: 'Affiche', get: f => `<div class="cell-flex"><span class="team-dot" style="background:${esc(teamById(f.t1Id)?.color || '#e5304a')}"></span><b>${esc(teamName(f.t1Id))}</b><small class="muted">&nbsp;vs&nbsp;</small><span class="team-dot" style="background:${esc(teamById(f.t2Id)?.color || '#3d6fe5')}"></span><b>${esc(teamName(f.t2Id))}</b></div>` },
+      { label: 'Affiche', get: f => `<div class="cell-flex"><span class="team-dot" style="background:${esc((teamById(f.t1Id) || {}).color || '#e5304a')}"></span><b>${esc(teamName(f.t1Id))}</b><small class="muted">&nbsp;vs&nbsp;</small><span class="team-dot" style="background:${esc((teamById(f.t2Id) || {}).color || '#3d6fe5')}"></span><b>${esc(teamName(f.t2Id))}</b></div>` },
       { label: 'Arène', get: f => `<b>${f.size || 1}</b> v <b>${f.size || 1}</b>` },
       { label: 'Événement', get: f => f.eventId ? esc(eventName(f.eventId)) : '<small class="muted">Hors gala</small>' },
-      { label: 'Résultat', get: f => !f.winnerId ? badge('À venir', 'blue') : f.winnerId === 'DRAW' ? badge('Match nul', 'orange') : `<div class="cell-flex"><span class="team-dot" style="background:${esc(teamById(f.winnerId)?.color || '#e5304a')}"></span><b>${esc(teamName(f.winnerId))} gagne</b></div>` },
+      { label: 'Résultat', get: f => !f.winnerId ? badge('À venir', 'blue') : f.winnerId === 'DRAW' ? badge('Match nul', 'orange') : `<div class="cell-flex"><span class="team-dot" style="background:${esc((teamById(f.winnerId) || {}).color || '#e5304a')}"></span><b>${esc(teamName(f.winnerId))} gagne</b></div>` },
       { label: 'Points', get: f => { if (!f.winnerId || f.winnerId === 'DRAW') return '—'; const sz = Math.max(1, Number(f.size || 1)); return `<span class="rec">+${2 * sz}</span> / <span class="exp">−${2 * sz}</span>`; } },
       { label: 'Notes', get: f => f.notes ? `<small>${esc(f.notes)}</small>` : '—' }
     ],
@@ -355,7 +355,7 @@ const SCHEMAS = {
         Store.log(`Nouvelle ceinture créée : ${item.belt}`);
       }
     },
-    editPreload(id) { SCHEMAS._prevChamp = SCHEMAS._prevChamp || {}; SCHEMAS._prevChamp[id] = D().championships.find(c => c.id === id)?.championId; },
+    editPreload(id) { SCHEMAS._prevChamp = SCHEMAS._prevChamp || {}; const cc = D().championships.find(c => c.id === id); SCHEMAS._prevChamp[id] = cc ? cc.championId : undefined; },
     rowTitle: c => c.belt
   },
 
@@ -589,7 +589,7 @@ const CUSTOM_VIEWS = {
           ${teamRanking().slice(0, 5).map((row, i) => `
             <div class="list-item">
               <span class="rank r-${i + 1}">${i + 1}</span>
-              <div style="flex:1"><span class="team-dot" style="background:${esc(row.t.color || '#e5304a')}"></span><b>${esc(row.t.name)}</b> <small class="muted">${row.t.members?.length || 0} membre(s)</small></div>
+              <div style="flex:1"><span class="team-dot" style="background:${esc(row.t.color || '#e5304a')}"></span><b>${esc(row.t.name)}</b> <small class="muted">${(row.t.members && row.t.members.length) || 0} membre(s)</small></div>
               <span class="pts">${row.s.pts} pts <small class="muted">(${row.s.w}V-${row.s.l}D)</small></span>
             </div>`).join('') || '<p class="muted">Aucune équipe enregistrée.</p>'}
           <button class="btn btn-ghost btn-sm full-w" data-action="goto" data-target="#tranked">Voir le TFL Ranking →</button>
@@ -626,7 +626,8 @@ const CUSTOM_VIEWS = {
     rows.forEach(r => { const c = r.f.category || '—'; (byCat[c] = byCat[c] || []).push(r.f.id); });
     function contenderTag(fid) {
       const me = fighterById(fid);
-      const belt = D().championships.find(c => c.category === me?.category);
+      const me = fighterById(id);
+      const belt = D().championships.find(c => c.category === (me && me.category));
       if (!belt) return '';
       const list = (byCat[belt.category] || []).filter(x => x !== belt.championId);
       const pos = list.indexOf(fid);
@@ -882,7 +883,8 @@ function render() {
 /* ================= FORMULAIRES (MODALE) ================= */
 
 function fieldHtml(f, item) {
-  const val = item ? (item[f.key] ?? '') : (f.value ?? '');
+  const rawVal = item ? item[f.key] : f.value;
+  const val = (rawVal === undefined || rawVal === null) ? '' : rawVal;
   let input;
   switch (f.type) {
     case 'textarea': input = `<textarea name="${f.key}" ${f.required ? 'required' : ''}>${esc(val)}</textarea>`; break;
@@ -1136,7 +1138,7 @@ function openCarte(eventId) {
   const fights = D().fights.filter(f => f.eventId === eventId)
     .sort((a, b) => (b.importance === 'Main Event') - (a.importance === 'Main Event'));
   const order = { 'Main Event': 0, 'Co-Main Event': 1, 'Carte principale': 2 };
-  fights.sort((a, b) => (order[a.importance] ?? 3) - (order[b.importance] ?? 3));
+  fights.sort((a, b) => (order[a.importance] !== undefined ? order[a.importance] : 3) - (order[b.importance] !== undefined ? order[b.importance] : 3));
 
   showModal(`
     <h3>Carte — #${esc(e.number)} ${esc(e.name.split('—')[1] || '')} ${badge(e.type || 'Gala', e.type === 'Soirée' ? 'purple' : 'gold')}</h3>
@@ -1417,7 +1419,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('toggle', e => {
   const det = e.target.closest('.manage-details');
-  if (det && det.open) det.querySelector('.search-input, input')?.focus?.();
+  if (det && det.open) { const q = det.querySelector('.search-input, input'); if (q && q.focus) q.focus(); }
 }, true);
 
 function closeMenus() {
