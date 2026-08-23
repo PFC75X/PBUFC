@@ -1260,8 +1260,15 @@ function openBackups() {
   showModal(`
     <h3>Sauvegardes automatiques</h3>
     <p class="muted small">Un instantané est créé automatiquement à chaque modification du club (maximum ${Store.HIST_MAX}, les plus anciennes sont effacées). Restaurer remplace les données actuelles.</p>
+    ${Store.lastSync() ? `<p class="muted small">☁ Dernière synchronisation cloud : <b>${new Date(Store.lastSync()).toLocaleString('fr-FR')}</b></p>` : ''}
     <div class="bk-list">${rows || '<p class="muted">Aucune sauvegarde pour le moment — la première sera créée dès la prochaine modification.</p>'}</div>
-    <div class="modal-actions"><button class="btn btn-outline" data-action="close-modal">Fermer</button></div>`);
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" data-action="cloud-pull">☁ Recharger du cloud</button>
+        <button class="btn btn-primary" data-action="cloud-push">☁ Envoyer au cloud</button>
+      </div>
+      <button class="btn btn-outline" data-action="close-modal">Fermer</button>
+    </div>`);
 }
 
 function exportCompta() {
@@ -1376,6 +1383,25 @@ document.addEventListener('click', e => {
       askConfirm('Supprimer la sauvegarde', 'Cette instantané sera définitivement effacé.', () => { Store.deleteBackup(i); openBackups(); });
       break;
     }
+    case 'cloud-push':
+      Store.forcePush();
+      break;
+    case 'cloud-pull':
+      Store.pullRemote().then(remote => {
+        if (!remote || !remote.fighters) { document.dispatchEvent(new CustomEvent('pbafc:cloud-err')); return; }
+        const lt = String(Store.data.updatedAt || ''), rt = String(remote.updatedAt || '');
+        if (rt && rt > lt) {
+          askConfirm('Charger le cloud', `Le cloud contient une version plus récente (${new Date(rt).toLocaleString('fr-FR')}). Remplacer les données locales ?`, () => {
+            Store.data = remote;
+            Store.normalize();
+            Store.log('Rechargé depuis le cloud');
+            Store._stable = null;
+            Store.save();
+            render();
+          });
+        } else document.dispatchEvent(new CustomEvent('pbafc:cloud-ok'));
+      });
+      break;
   }
 });
 
@@ -1405,25 +1431,56 @@ window.addEventListener('hashchange', render);
 
 document.addEventListener('pbafc:saved', () => { if (window.__pbafcReady) flashSaved(false); });
 document.addEventListener('pbafc:save-error', () => { if (window.__pbafcReady) flashSaved(true); });
+document.addEventListener('pbafc:cloud-ok', () => { if (window.__pbafcReady) flashSaved('cloud'); });
+document.addEventListener('pbafc:cloud-err', () => { if (window.__pbafcReady) flashSaved('offline'); });
 
 let toastTimer = null;
-function flashSaved(err) {
+function flashSaved(state) {
   let t = document.getElementById('save-toast');
   if (!t) {
     t = document.createElement('div');
     t.id = 'save-toast';
-    t.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><b></b><small></small>`;
+    t.innerHTML = `<span class="ic"></span><b></b><small></small>`;
     document.body.appendChild(t);
   }
-  t.classList.toggle('err', !!err);
-  t.querySelector('b').textContent = err ? 'Échec — non enregistré' : 'Enregistré';
-  t.querySelector('small').textContent = 'à ' + new Date().toLocaleTimeString('fr-FR');
+  const IC = {
+    ok: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`,
+    err: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+    cloud: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`,
+    offline: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><line x1="3" y1="3" x2="21" y2="21"/></svg>`
+  };
+  const mode = state === true ? 'err' : state || 'ok';
+  const TXT = {
+    ok: ['Enregistré', 'à '],
+    err: ['Échec — non enregistré', 'à '],
+    cloud: ['Synchronisé en ligne', 'à '],
+    offline: ['Hors ligne — synchro en attente', 'à ']
+  };
+  t.dataset.mode = mode;
+  t.querySelector('.ic').innerHTML = IC[mode];
+  t.querySelector('b').textContent = TXT[mode][0];
+  t.querySelector('small').textContent = TXT[mode][1] + new Date().toLocaleTimeString('fr-FR');
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
 Store.load();
 render();
 window.__pbafcReady = true;
+
+Store.pullRemote().then(remote => {
+  if (!remote || !remote.fighters) { Store.pushRemote(); return; }
+  const lt = String(Store.data.updatedAt || ''), rt = String(remote.updatedAt || '');
+  if (rt > lt) {
+    Store.data = remote;
+    Store.normalize();
+    Store.log('Données chargées depuis le cloud');
+    Store._stable = null;
+    Store.save();
+    render();
+  } else {
+    Store.pushRemote();
+  }
+});
 console.log('PBUFC — Panel de gestion chargé.');
