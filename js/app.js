@@ -1431,6 +1431,8 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
+const APP_VERSION = 'v19';
+
 document.addEventListener('pbafc:saved', () => { if (window.__pbafcReady) flashSaved(false); });
 document.addEventListener('pbafc:save-error', () => { if (window.__pbafcReady) flashSaved(true); });
 document.addEventListener('pbafc:cloud-ok', () => { if (window.__pbafcReady) flashSaved('cloud'); });
@@ -1474,6 +1476,19 @@ Store.load();
 render();
 window.__pbafcReady = true;
 
+(function () {
+  let b = document.getElementById('app-version');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'app-version';
+    document.body.appendChild(b);
+  }
+  b.textContent = 'PBUFC · ' + APP_VERSION;
+})();
+
+if (typeof fetch === 'undefined') {
+  document.dispatchEvent(new CustomEvent('pbafc:cloud-err'));
+} else {
 Store.pullRemote().then(remote => {
   if (!remote || !remote.fighters) { Store.pushRemote(); return; }
   const lt = String(Store.data.updatedAt || ''), rt = String(remote.updatedAt || '');
@@ -1508,4 +1523,5 @@ setInterval(() => {
     }
   }).catch(() => { Store._syncBusy = false; });
 }, 20000);
-console.log('PBUFC — Panel de gestion chargé.');
+}
+console.log('PBUFC — Panel de gestion chargé (' + APP_VERSION + ').');
