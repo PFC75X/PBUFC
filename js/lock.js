@@ -10,30 +10,26 @@
   root.innerHTML = `
     <div class="lock-frame">
       <div class="lock-screen" id="lk-screen">
-        <canvas class="matrix" id="lk-matrix"></canvas>
-        <div class="rail l"><span>ACCÈS RESTREINT   PLAYBOY UNDERGROUND FIGHT CLUB   NIVEAU 5   ACCÈS RESTREINT</span></div>
-        <div class="rail r"><span>DOSSIERS CHIFFRÉS   PBUFC-SEC   INTERDIT AUX NON-MEMBRES   DOSSIERS CHIFFRÉS</span></div>
-        <div class="stamp">Confidentiel ★ PBUFC-Sec</div>
-        <div class="statusbar"><span>PBUFC OS</span><span class="sb-hex" id="lk-hex">ID 0x0000</span><span class="sb-icons">⌁ ▮▮▮▮</span></div>
+        <div class="statusbar"><span class="sb-brand">PB Portal</span><span>Session chiffrée · FR</span></div>
         <div class="boot" id="lk-boot">
           <img class="boot-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
-          <div class="boot-name">PBUFC<span>SECURITY OS v2.3</span></div>
+          <div class="boot-name">PB PORTAL<span>ESPACE PROFESSIONNEL · v3.1</span></div>
           <div class="boot-bar"><i></i></div>
-          <div class="boot-msg" id="lk-bootmsg">Initialisation…</div>
+          <div class="boot-msg" id="lk-bootmsg">Chargement…</div>
         </div>
         <div class="lock-ui" id="lk-ui" style="display:none">
           <div class="lk-mid">
             <div class="lk-clock" id="lk-clock">--:--</div>
             <div class="lk-date" id="lk-date"></div>
-            <button class="lk-seal" id="lk-seal" title="Sceau du club — appui long">
+            <button class="lk-seal" id="lk-seal" title="Logo de l’entreprise — appui long">
               <img src="assets/logo.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
               <b class="seal-pb">PB</b>
               <span class="ring"></span>
             </button>
             <div class="lk-code" id="lk-code"></div>
-            <div class="lk-status" id="lk-status">Système verrouillé</div>
+            <div class="lk-status" id="lk-status">Authentification requise</div>
             <div class="keypad" id="lk-pad"></div>
-            <div class="lk-hint">Astuce : appui long sur le sceau, puis la date d’ouverture du club.</div>
+            <div class="lk-hint"><b>Astuce :</b> maintenez le logo de l’entreprise, puis saisissez votre code d’accès à 8 chiffres.</div>
           </div>
         </div>
       </div>
@@ -61,37 +57,11 @@
     });
   }
   const MSGS_FAIL = [
-    'Code erroné. Réessayez.',
-    'Accès refusé — la sécurité vous observe.',
-    'Alarme silencieuse armée… dernière chance.'
+    'Code incorrect. Réessayez.',
+    'Code incorrect — vérifiez votre code d’accès.',
+    'Trop de tentatives. Le logo a été reverrouillé.'
   ];
-  const MSGS_BOOT = ['> déchiffrement des dossiers… 0x7F3A', '> canal chiffré établi — AES-256', '[OK] pare-feu du club actif', 'BIENVENUE, PATRON.'];
-
-  const GLYPHS = 'PBUFC0123456789ABCDEF#$%&?';
-  const cv = $('lk-matrix'), cx = cv.getContext('2d');
-  let cols = 0, drops = [];
-  const FS = 15;
-  function sizeCv() { cv.width = screen.clientWidth; cv.height = screen.clientHeight; cols = Math.ceil(cv.width / FS); drops = Array.from({ length: cols }, () => Math.random() * -60); }
-  sizeCv();
-  window.addEventListener('resize', () => { try { sizeCv(); } catch (e) { } });
-  setInterval(() => {
-    cx.fillStyle = 'rgba(8,8,11,0.3)';
-    cx.fillRect(0, 0, cv.width, cv.height);
-    cx.font = FS + 'px monospace';
-    for (let i = 0; i < cols; i++) {
-      const x = i * FS, y = drops[i] * FS;
-      if (y > 0) {
-        cx.fillStyle = Math.random() < 0.06 ? 'rgba(232,181,58,0.5)' : 'rgba(229,48,74,0.32)';
-        cx.fillText(GLYPHS[Math.floor(Math.random() * GLYPHS.length)], x, y);
-      }
-      if (y > cv.height && Math.random() > 0.976) drops[i] = 0;
-      drops[i] += 0.55;
-    }
-  }, 75);
-
-  function hexId() { return 'ID 0x' + Array.from({ length: 4 }, () => '0123456789ABCDEF'[Math.floor(Math.random() * 16)]).join(''); }
-  $('lk-hex').textContent = hexId();
-  setInterval(() => { const h = $('lk-hex'); if (h) h.textContent = hexId(); }, 5000);
+  const MSGS_BOOT = ['Chargement du portail…', 'Connexion sécurisée établie.', 'Synchronisation des plannings…', 'Bienvenue.'];
 
   function setStatus(txt, cls = '') { status.textContent = txt; status.className = 'lk-status ' + cls; }
 
@@ -113,7 +83,7 @@
   function validate() {
     if (buf === CODE) {
       busy = true;
-      setStatus('ACCÈS AUTORISÉ', 'ok');
+      setStatus('BIENVENUE DANS VOTRE ESPACE', 'ok');
       screen.classList.add('flash-ok');
       try { sessionStorage.setItem(TAB_KEY, '1'); } catch (e) { }
       setTimeout(() => root.classList.add('off'), 850);
@@ -124,7 +94,7 @@
       const frame = root.querySelector('.lock-frame');
       frame.classList.remove('shake'); void frame.offsetWidth; frame.classList.add('shake');
       buf = '';
-      if (attempts % 3 === 0) { stage = 0; seal.classList.remove('active'); lockPad(true); setStatus('Sceau reverrouillé par sécurité.'); }
+      if (attempts % 3 === 0) { stage = 0; seal.classList.remove('active'); lockPad(true); setStatus('Logo reverrouillé par sécurité.'); }
       renderCode();
     }
   }
@@ -154,14 +124,14 @@
       seal.classList.remove('holding');
       seal.classList.add('active');
       lockPad(false);
-      setStatus('PB activé · entrez les 8 chiffres');
+      setStatus('Logo validé · saisissez votre code à 8 chiffres');
       renderCode();
       try { navigator.vibrate && navigator.vibrate(60); } catch (err) { }
     }, 750);
   }
   function cancelHold() {
     seal.classList.remove('holding');
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; if (stage < 1) setStatus('Appui trop court — maintenez le sceau.', ''); }
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; if (stage < 1) setStatus('Appui trop court — maintenez le logo.', ''); }
   }
   seal.addEventListener('pointerdown', startHold);
   seal.addEventListener('pointerup', cancelHold);
