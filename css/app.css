@@ -535,6 +535,18 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
 }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
 .confirm-msg { color: var(--muted); line-height: 1.65; margin: 12px 0 4px; white-space: pre-line; }
+
+/* ===== Comptabilité ===== */
+.ac-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.ac-month { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; }
+.ac-month input { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 12px; color-scheme: dark; }
+.ac-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.ac-panel h4 { margin: 0 0 14px; font-size: .95rem; letter-spacing: .02em; }
+.ac-line { display: grid; grid-template-columns: 150px 1fr auto; align-items: center; gap: 10px; margin-bottom: 9px; font-size: .85rem; }
+.ac-line span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-bar { height: 9px; background: rgba(255,255,255,.07); border-radius: 99px; overflow: hidden; }
+.ac-bar i { display: block; height: 100%; border-radius: 99px; transition: width .5s cubic-bezier(.25,.8,.3,1); }
+@media (max-width: 760px) { .ac-grid { grid-template-columns: 1fr; } .ac-line { grid-template-columns: 110px 1fr auto; } }
 .fiche-head { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; }
 
 .card-list { display: flex; flex-direction: column; gap: 8px; }
