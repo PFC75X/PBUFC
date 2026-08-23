@@ -572,24 +572,25 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
 
 /* ===== Comptes employés ===== */
 .user-chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:#c9c9d2;background:var(--panel-2);border:1px solid var(--border);border-radius:99px;padding:6px 12px;font-weight:600;white-space:nowrap}
-.auth-overlay{position:fixed;inset:0;z-index:9700;display:none;place-items:center;background:rgba(8,8,12,.82);backdrop-filter:blur(4px)}
-.auth-card{width:min(420px,92vw);background:#10151d;border:1px solid #232b38;border-radius:18px;padding:26px 26px 20px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6)}
-.auth-card h3{margin:14px 0 18px;color:#ececf2}
-.auth-logo{width:64px;height:64px;border-radius:16px;object-fit:cover;border:1px solid #2a2f3a}
-.auth-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-.auth-user{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:13px 16px;border-radius:12px;border:1px solid #232b38;background:#151a23;color:#ececf2;cursor:pointer;font-size:.95rem;text-align:left}
+#auth-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9700;display:none;-ms-grid-columns:1fr;place-items:center;background:linear-gradient(180deg,#ffffff 0%,#f2f5f9 55%,#e8edf4 100%)}
+.auth-kicker{text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.35em;color:#8b95a7;text-transform:uppercase;margin-bottom:10px}
+.auth-card{width:min(440px,92vw);background:#10151d;border:1px solid #232b38;border-radius:20px;padding:34px 32px 26px;text-align:center;box-shadow:0 30px 90px rgba(15,23,42,.25)}
+.auth-card h3{margin:14px 0 6px;color:#ececf2;font-size:1.3rem}
+.auth-logo{width:72px;height:72px;border-radius:18px;object-fit:cover;border:1px solid #2a2f3a}
+.auth-list{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.auth-user{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:14px 16px;border-radius:12px;border:1px solid #232b38;background:#151a23;color:#ececf2;cursor:pointer;font-size:.98rem;text-align:left}
 .auth-user:hover{border-color:#e5304a}
 .auth-user small{color:#8b95a7}
-.auth-skip{background:none;border:none;color:#8b95a7;font-size:.85rem;margin-top:10px;cursor:pointer;text-decoration:underline}
+.auth-skip{background:none;border:none;color:#8b95a7;font-size:.85rem;margin-top:12px;cursor:pointer;text-decoration:underline}
 .auth-skip:hover{color:#c9c9d2}
-.auth-pin p{color:#c9c9d2;margin:6px 0 12px}
+.auth-pin p{color:#c9c9d2;margin:16px 0 12px}
 #auth-input{width:140px;text-align:center;font-size:1.6rem;letter-spacing:.5em;padding:10px 0 10px .5em;border-radius:12px;border:1px solid #2a3342;background:#0c1017;color:#ececf2}
 .auth-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
 .auth-err{color:#ff6b7a;font-size:.85rem;margin:8px 0 0}
-.auth-sub{color:#8b95a7;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px}
-.auth-card input[type="text"],.auth-card select,.auth-card input[type="password"]{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #2a3342;background:#0c1017;color:#ececf2;margin-bottom:10px;font-size:.95rem;text-align:center}
+.auth-sub{color:#8b95a7;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;margin:0 0 16px}
+.auth-card input[type="text"],.auth-card select,.auth-card input[type="password"]{width:100%;box-sizing:border-box;padding:13px;border-radius:10px;border:1px solid #2a3342;background:#0c1017;color:#ececf2;margin-bottom:10px;font-size:.95rem;text-align:center}
 .auth-card select{text-align:left;appearance:auto}
-.auth-new{display:block;width:100%;padding:12px 16px;border-radius:12px;border:1px dashed #3a4356;background:none;color:#8b95a7;cursor:pointer;font-size:.9rem}
+.auth-new{display:block;width:100%;padding:13px 16px;border-radius:12px;border:1px dashed #3a4356;background:none;color:#8b95a7;cursor:pointer;font-size:.9rem}
 .auth-new:hover{color:#ececf2;border-color:#e5304a}
 #save-toast[data-mode="offline"]{border-color:rgba(245,158,11,.55);color:#fef3c7}
 #save-toast[data-mode="offline"] .ic{color:#f59e0b}
