@@ -10,4 +10,4 @@ window.addEventListener("scroll", () => {
 });
 
 // Smooth scroll déjà géré par CSS (scroll-behavior: smooth)
-console.log("IRON FC — ébauche chargée 🥊");
+console.log("PBUFC — PlayBoy Underground Fight Club 🥊");
