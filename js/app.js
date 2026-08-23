@@ -351,7 +351,7 @@ const SCHEMAS = {
 
   tickets: {
     title: 'Billetterie & VIP', singular: 'Réservation', icon: '🎟️',
-    desc: 'Suivi des entrées, réservations et Black Cards. Tarifs habituels : Standard 25 $ · VIP 80 $ · Black Card 250 $.',
+    desc: 'Tarifs officiels PBUFC : Entrée Spectateur 250 $/pers · Entrée VIP 750 $/pers · Inscription Combattant 150 $/combattant.',
     before() {
       const t = D().tickets;
       const sum = ty => t.filter(x => x.type === ty);
@@ -359,9 +359,9 @@ const SCHEMAS = {
       const pending = t.filter(x => !x.paid).reduce((s, x) => s + x.price * x.qty, 0);
       return `
         <div class="stat-row">
-          <div class="stat-card"><small>Black Cards vendues</small><b>${sum('Black Card').reduce((s, x) => s + x.qty, 0)}</b></div>
-          <div class="stat-card"><small>Places VIP</small><b>${sum('VIP').reduce((s, x) => s + x.qty, 0)}</b></div>
-          <div class="stat-card"><small>Places Standard</small><b>${sum('Standard').reduce((s, x) => s + x.qty, 0)}</b></div>
+          <div class="stat-card"><small>Entrées Spectateur</small><b>${sum('Spectateur').reduce((s, x) => s + x.qty, 0)}</b><small>250 $/pers</small></div>
+          <div class="stat-card gold-b"><small>Entrées VIP</small><b>${sum('VIP').reduce((s, x) => s + x.qty, 0)}</b><small>750 $/pers</small></div>
+          <div class="stat-card purple"><small>Inscriptions combattants</small><b>${sum('Inscription Combattant').reduce((s, x) => s + x.qty, 0)}</b><small>150 $/combattant</small></div>
           <div class="stat-card green"><small>Encaissé</small><b>${money(totalPaid)}</b></div>
           <div class="stat-card orange"><small>En attente</small><b>${money(pending)}</b></div>
         </div>`;
@@ -369,7 +369,7 @@ const SCHEMAS = {
     columns: [
       { label: 'Date', get: t => fmtDate(t.date) },
       { label: 'Acheteur', get: t => `<b>${esc(t.buyer)}</b>` },
-      { label: 'Type', get: t => badge(t.type, t.type === 'Black Card' ? 'gold' : t.type === 'VIP' ? 'purple' : 'blue') },
+      { label: 'Type', get: t => badge(t.type, t.type === 'VIP' ? 'gold' : t.type === 'Inscription Combattant' ? 'purple' : 'blue') },
       { label: 'Qté', get: t => t.qty },
       { label: 'Prix unit.', get: t => money(t.price) },
       { label: 'Total', get: t => `<b>${money(t.price * t.qty)}</b>` },
@@ -377,9 +377,9 @@ const SCHEMAS = {
     ],
     fields: [
       { key: 'buyer', label: 'Acheteur / Réservation *', required: true },
-      { key: 'type', label: 'Type', type: 'select', options: ['Standard', 'VIP', 'Black Card'] },
+      { key: 'type', label: 'Type', type: 'select', options: ['Spectateur', 'VIP', 'Inscription Combattant'] },
       { key: 'qty', label: 'Quantité', type: 'number', value: 1 },
-      { key: 'price', label: 'Prix unitaire ($)', type: 'number', value: 25 },
+      { key: 'price', label: 'Prix unitaire ($)', type: 'number', value: 250 },
       { key: 'date', label: 'Date', type: 'date' },
       { key: 'paid', label: 'Payé ?', type: 'checkbox' }
     ],
