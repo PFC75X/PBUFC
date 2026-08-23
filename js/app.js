@@ -226,6 +226,7 @@ const SCHEMAS = {
       { key: 'nickname', label: 'Surnom' },
       { key: 'role', label: 'Rôle', type: 'select', options: STAFF_ROLES },
       { key: 'contact', label: 'Contact' },
+      { key: 'pin', label: 'Code PIN tablette (4 chiffres)', placeholder: 'Laisser vide = pas de compte sur la tablette' },
       { key: 'status', label: 'Statut', type: 'select', options: ['Actif', 'Inactif'] }
     ],
     sortFn: (a, b) => {
@@ -434,7 +435,7 @@ const SCHEMAS = {
     },
     columns: [
       { label: 'Date', get: a => fmtDate(a.date) },
-      { label: 'Libellé', get: a => `<b>${esc(a.label)}</b>${a.ref ? `<br><small class="muted">${esc(a.ref)}</small>` : ''}` },
+      { label: 'Libellé', get: a => `<b>${esc(a.label)}</b>${a.ref ? `<br><small class="muted">${esc(a.ref)}</small>` : ''}${a.createdBy ? `<br><small class="muted">par ${esc(a.createdBy)}</small>` : ''}` },
       { label: 'Type', get: a => a.type === 'Recette' ? badge('Recette', 'green') : badge('Dépense', 'red') },
       { label: 'Catégorie', get: a => esc(a.category || '—') },
       { label: 'Paiement', get: a => esc(a.method || '—') },
@@ -948,6 +949,11 @@ function submitEntityForm(ev) {
     item = { id: Store.uid(), createdAt: new Date().toISOString().slice(0, 10), ...values };
     D()[section].unshift(item);
   }
+  const cu = Store.curUser();
+  if (cu && cu.name) {
+    if (id) item.updatedBy = cu.name;
+    else item.createdBy = cu.name;
+  }
   if (s.onSave) s.onSave(item, !id);
 
   if (!id) Store.log(`${s.singular} ajouté(e) : ${typeof s.rowTitle === 'function' ? s.rowTitle(item) : item.name || item.label || item.belt || ''}`);
@@ -1344,12 +1350,24 @@ document.addEventListener('click', e => {
     case 'points': openPoints(section, id); break;
     case 'record': openRecord(id); break;
     case 'teamfiche': openTeamFiche(id); break;
-    case 'close-season': closeSeason(); break;
+    case 'close-season':
+      if (!canManage()) { flashSaved('denied'); break; }
+      closeSeason();
+      break;
     case 'close-modal': closeModal(); break;
     case 'export': exportJSON(); break;
     case 'import': document.getElementById('import-file').click(); break;
     case 'reset':
+      if (!canManage()) { flashSaved('denied'); break; }
       askConfirm('Réinitialisation', 'Réinitialiser TOUTES les données du club ? Tout repartira de zéro.', () => { Store.reset(); render(); });
+      break;
+    case 'switch-user':
+      askConfirm('Changer d’utilisateur', 'Terminer la session en cours et revenir à l’écran de connexion ?', () => {
+        Store.setUser(null);
+        updateUserChip();
+        showLogin();
+        render();
+      });
       break;
     case 'ac-all':
       acMonth = ''; render();
@@ -1430,7 +1448,78 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v21';
+const APP_VERSION = 'v22';
+
+function curUser() { return Store.curUser(); }
+function canManage() {
+  const u = Store.curUser();
+  return !u || u.role === 'Patron' || u.role === 'Co-Patron';
+}
+function updateUserChip() {
+  const chip = document.getElementById('user-chip');
+  const btn = document.getElementById('btn-switch');
+  if (!chip) return;
+  const u = Store.curUser();
+  if (u && u.name) {
+    chip.style.display = '';
+    chip.textContent = '👤 ' + u.name + (u.role ? ' · ' + u.role : '');
+    if (btn) btn.style.display = '';
+  } else {
+    chip.style.display = 'none';
+    if (btn) btn.style.display = 'none';
+  }
+}
+
+function showLogin() {
+  const list = D().staff.filter(s => s.pin && s.status === 'Actif');
+  if (!list.length) return;
+  let ov = document.getElementById('auth-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'auth-overlay';
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'grid';
+  ov.innerHTML = `
+    <div class="auth-card">
+      <img class="auth-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
+      <h3>Qui utilise la tablette ?</h3>
+      <div class="auth-list" id="auth-list">
+        ${list.map(s => `<button class="auth-user" data-id="${s.id}"><b>${esc(s.name)}</b><small>${esc(s.role || '')}</small></button>`).join('')}
+        <button class="auth-skip">Continuer sans compte</button>
+      </div>
+      <div class="auth-pin" id="auth-pinbox" style="display:none">
+        <p>Code de <b id="auth-name"></b></p>
+        <input type="password" inputmode="numeric" maxlength="4" id="auth-input" autocomplete="off">
+        <p class="auth-err" id="auth-err" style="display:none">Code incorrect</p>
+        <div class="auth-actions">
+          <button class="btn btn-outline btn-sm" id="auth-back">Retour</button>
+          <button class="btn btn-primary btn-sm" id="auth-ok">Valider</button>
+        </div>
+      </div>
+    </div>`;
+  let selected = null;
+  ov.querySelectorAll('.auth-user').forEach(b => {
+    b.addEventListener('click', () => { selected = b; ov.querySelector('#auth-list').style.display = 'none'; ov.querySelector('#auth-pinbox').style.display = ''; ov.querySelector('#auth-name').textContent = b.textContent.split('\n')[0]; setTimeout(() => { const i = ov.querySelector('#auth-input'); if (i) i.focus(); }, 50); });
+  });
+  ov.querySelector('.auth-skip').addEventListener('click', () => { Store.setUser(null); updateUserChip(); ov.style.display = 'none'; render(); });
+  ov.querySelector('#auth-back').addEventListener('click', () => { ov.querySelector('#auth-pinbox').style.display = 'none'; ov.querySelector('#auth-list').style.display = ''; selected = null; });
+  const tryPin = () => {
+    const inp = ov.querySelector('#auth-input');
+    const st = list.find(s => selected && s.id === selected.dataset.id);
+    if (st && inp.value.trim() === String(st.pin).trim()) {
+      Store.setUser({ id: st.id, name: st.name, role: st.role || '' });
+      updateUserChip();
+      ov.style.display = 'none';
+      render();
+    } else {
+      ov.querySelector('#auth-err').style.display = '';
+      inp.value = '';
+    }
+  };
+  ov.querySelector('#auth-ok').addEventListener('click', tryPin);
+  ov.querySelector('#auth-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryPin(); });
+}
 
 document.addEventListener('pbafc:saved', () => { if (window.__pbafcReady) flashSaved(false); });
 document.addEventListener('pbafc:save-error', () => { if (window.__pbafcReady) flashSaved(true); });
@@ -1453,14 +1542,16 @@ function flashSaved(state) {
     cloud: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`,
     refresh: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
     offline: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><line x1="3" y1="3" x2="21" y2="21"/></svg>`,
-    err: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
+    err: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+    denied: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
   };
   const TXT = {
     ok: ['Enregistré', 'à '],
     err: ['Échec — non enregistré', 'à '],
     cloud: ['Synchronisé en ligne', 'à '],
     offline: ['Hors ligne — synchro en attente', 'à '],
-    refresh: ['Mises à jour reçues du cloud', 'à ']
+    refresh: ['Mises à jour reçues du cloud', 'à '],
+    denied: ['Action réservée à la direction (Patron / Co-Patron)', '· ']
   };
   t.dataset.mode = mode;
   t.querySelector('.ic').innerHTML = IC[mode];
@@ -1484,6 +1575,9 @@ window.__pbafcReady = true;
   }
   b.textContent = 'PBUFC · ' + APP_VERSION;
 })();
+
+updateUserChip();
+showLogin();
 
 if (typeof fetch === 'undefined') {
   document.dispatchEvent(new CustomEvent('pbafc:cloud-err'));
