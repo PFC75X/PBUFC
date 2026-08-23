@@ -626,7 +626,6 @@ const CUSTOM_VIEWS = {
     rows.forEach(r => { const c = r.f.category || '—'; (byCat[c] = byCat[c] || []).push(r.f.id); });
     function contenderTag(fid) {
       const me = fighterById(fid);
-      const me = fighterById(id);
       const belt = D().championships.find(c => c.category === (me && me.category));
       if (!belt) return '';
       const list = (byCat[belt.category] || []).filter(x => x !== belt.championId);
