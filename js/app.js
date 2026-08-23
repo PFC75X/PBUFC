@@ -1433,6 +1433,7 @@ document.addEventListener('pbafc:saved', () => { if (window.__pbafcReady) flashS
 document.addEventListener('pbafc:save-error', () => { if (window.__pbafcReady) flashSaved(true); });
 document.addEventListener('pbafc:cloud-ok', () => { if (window.__pbafcReady) flashSaved('cloud'); });
 document.addEventListener('pbafc:cloud-err', () => { if (window.__pbafcReady) flashSaved('offline'); });
+document.addEventListener('pbafc:refresh', () => { if (window.__pbafcReady) flashSaved('refresh'); });
 
 let toastTimer = null;
 function flashSaved(state) {
@@ -1443,18 +1444,21 @@ function flashSaved(state) {
     t.innerHTML = `<span class="ic"></span><b></b><small></small>`;
     document.body.appendChild(t);
   }
+  const mode = state === true ? 'err' : state || 'ok';
   const IC = {
     ok: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`,
-    err: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
     cloud: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`,
-    offline: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><line x1="3" y1="3" x2="21" y2="21"/></svg>`
+    refresh: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+    offline: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><line x1="3" y1="3" x2="21" y2="21"/></svg>`,
+    err: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
   };
   const mode = state === true ? 'err' : state || 'ok';
   const TXT = {
     ok: ['Enregistré', 'à '],
     err: ['Échec — non enregistré', 'à '],
     cloud: ['Synchronisé en ligne', 'à '],
-    offline: ['Hors ligne — synchro en attente', 'à ']
+    offline: ['Hors ligne — synchro en attente', 'à '],
+    refresh: ['Mises à jour reçues du cloud', 'à ']
   };
   t.dataset.mode = mode;
   t.querySelector('.ic').innerHTML = IC[mode];
@@ -1483,4 +1487,24 @@ Store.pullRemote().then(remote => {
     Store.pushRemote();
   }
 });
+
+setInterval(() => {
+  if (document.visibilityState !== 'visible' || Store._syncBusy) return;
+  Store._syncBusy = true;
+  Store.pullRemote().then(remote => {
+    Store._syncBusy = false;
+    if (!remote || !remote.fighters) return;
+    const lt = String(Store.data.updatedAt || ''), rt = String(remote.updatedAt || '');
+    const rc = Object.assign({}, remote); delete rc.updatedAt;
+    if (rt >= lt && JSON.stringify(rc) !== Store.stableJson()) {
+      Store.data = remote;
+      Store.normalize();
+      Store.log('Mises à jour reçues du cloud');
+      Store._stable = null;
+      Store.save();
+      render();
+      document.dispatchEvent(new CustomEvent('pbafc:refresh'));
+    }
+  }).catch(() => { Store._syncBusy = false; });
+}, 20000);
 console.log('PBUFC — Panel de gestion chargé.');
