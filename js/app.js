@@ -954,16 +954,17 @@ function openTeamFiche(id) {
 }
 
 function closeSeason() {
-  if (!confirm('Clôturer la saison ?\n\nLes tops 10 FL et équipes TFL seront archivés et tous les ajustements manuels remis à zéro.')) return;
-  D().seasons = D().seasons || [];
-  const topF = ranking().slice(0, 10).map(r => { const s = stats(r.f.id); return { name: r.f.name, pbufc: r.f.pbufc, pts: s.pts, w: s.w, l: s.l }; });
-  const topT = teamRanking().slice(0, 10).map(r => { return { name: r.t.name, tag: r.t.tag || '', pts: r.s.pts, w: r.s.w, l: r.s.l }; });
-  D().seasons.unshift({ id: Store.uid(), closedAt: new Date().toISOString().slice(0, 10), top: topF, teams: topT });
-  D().fighters.forEach(f => { f.bonus = 0; f.adj = {}; });
-  D().teams.forEach(t => { t.bonus = 0; });
-  Store.log(`Saison clôturée — top ${topF.length} combattants + top ${topT.length} équipes archivés, ajustements remis à zéro`);
-  Store.save();
-  render();
+  askConfirm('Clôturer la saison', 'Les tops 10 FL et équipes TFL seront archivés et tous les ajustements manuels remis à zéro.', () => {
+    D().seasons = D().seasons || [];
+    const topF = ranking().slice(0, 10).map(r => { const s = stats(r.f.id); return { name: r.f.name, pbufc: r.f.pbufc, pts: s.pts, w: s.w, l: s.l }; });
+    const topT = teamRanking().slice(0, 10).map(r => { return { name: r.t.name, tag: r.t.tag || '', pts: r.s.pts, w: r.s.w, l: r.s.l }; });
+    D().seasons.unshift({ id: Store.uid(), closedAt: new Date().toISOString().slice(0, 10), top: topF, teams: topT });
+    D().fighters.forEach(f => { f.bonus = 0; f.adj = {}; });
+    D().teams.forEach(t => { t.bonus = 0; });
+    Store.log(`Saison clôturée — top ${topF.length} combattants + top ${topT.length} équipes archivés, ajustements remis à zéro`);
+    Store.save();
+    render();
+  });
 }
 
 function openRecord(id) {
@@ -1026,28 +1027,20 @@ function submitRecord(ev) {
   render();
 }
 
-function closeSeason() {
-  if (!confirm('Clôturer la saison ?\n\nLe top 10 actuel sera archivé et tous les ajustements manuels (points + palmarès) seront remis à zéro.')) return;
-  D().seasons = D().seasons || [];
-  const top = ranking().slice(0, 10).map(r => { const s = stats(r.f.id); return { name: r.f.name, pbufc: r.f.pbufc, pts: s.pts, w: s.w, l: s.l }; });
-  D().seasons.unshift({ id: Store.uid(), closedAt: new Date().toISOString().slice(0, 10), top });
-  D().fighters.forEach(f => { f.bonus = 0; f.adj = {}; });
-  Store.log(`Saison clôturée — top ${top.length} archivé, ajustements remis à zéro`);
-  Store.save();
-  render();
-}
-
 function deleteItem(section, id) {
   const s = SCHEMAS[section];
   const idx = D()[section].findIndex(x => x.id === id);
   if (idx < 0) return;
   const item = D()[section][idx];
   const name = typeof s.rowTitle === 'function' ? s.rowTitle(item) : (item.name || item.belt || '');
-  if (!confirm(`Supprimer « ${name} » ? Cette action est définitive.`)) return;
-  D()[section].splice(idx, 1);
-  Store.log(`Suppression ${s.singular} : ${name}`);
-  Store.save();
-  render();
+  askConfirm('Supprimer', `Supprimer « ${esc(name)} » ? Cette action est définitive.`, () => {
+    const i = D()[section].findIndex(x => x.id === id);
+    if (i < 0) return;
+    D()[section].splice(i, 1);
+    Store.log(`Suppression ${s.singular} : ${name}`);
+    Store.save();
+    render();
+  });
 }
 
 /* ================= ACTIONS SPÉCIALES ================= */
@@ -1176,6 +1169,22 @@ function closeModal() {
   document.getElementById('modal-overlay').classList.remove('show');
   document.body.style.overflow = '';
 }
+let _confirmCb = null;
+function askConfirm(title, msg, cb) {
+  _confirmCb = cb;
+  showModal(`
+    <h3>${esc(title)}</h3>
+    <p class="confirm-msg">${msg}</p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-action="close-modal">Annuler</button>
+      <button class="btn btn-danger" id="cf-ok">Confirmer</button>
+    </div>`);
+  document.getElementById('cf-ok').addEventListener('click', () => {
+    const f = _confirmCb; _confirmCb = null;
+    closeModal();
+    if (f) f();
+  });
+}
 document.getElementById('modal-overlay').addEventListener('click', e => {
   if (e.target.id === 'modal-overlay') closeModal();
 });
@@ -1254,7 +1263,7 @@ document.addEventListener('click', e => {
     case 'export': exportJSON(); break;
     case 'import': document.getElementById('import-file').click(); break;
     case 'reset':
-      if (confirm('Réinitialiser TOUTES les données du club ? Tout repartira de zéro.')) { Store.reset(); render(); }
+      askConfirm('Réinitialisation', 'Réinitialiser TOUTES les données du club ? Tout repartira de zéro.', () => { Store.reset(); render(); });
       break;
   }
 });
