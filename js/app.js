@@ -1242,6 +1242,28 @@ function exportJSON() {
   URL.revokeObjectURL(a.href);
 }
 
+function fmtBytes(n) { return n > 1024 ? (n / 1024).toFixed(1) + ' Ko' : n + ' o'; }
+
+function openBackups() {
+  const hist = Store.history();
+  const rows = hist.map((b, i) => {
+    const d = new Date(b.at);
+    return `<div class="bk-row">
+      <div class="bk-info"><b>${d.toLocaleDateString('fr-FR')} · ${d.toLocaleTimeString('fr-FR')}</b><small class="muted">${esc(b.label || 'Modification')} — ${fmtBytes(b.size || 0)}</small></div>
+      <div class="bk-actions">
+        <button class="row-btn" data-action="backup-restore" data-i="${i}">Restaurer</button>
+        <button class="row-btn" data-action="backup-dl" data-i="${i}">Télécharger</button>
+        <button class="row-btn danger" data-action="backup-del" data-i="${i}">Supprimer</button>
+      </div>
+    </div>`;
+  }).join('');
+  showModal(`
+    <h3>Sauvegardes automatiques</h3>
+    <p class="muted small">Un instantané est créé automatiquement à chaque modification du club (maximum ${Store.HIST_MAX}, les plus anciennes sont effacées). Restaurer remplace les données actuelles.</p>
+    <div class="bk-list">${rows || '<p class="muted">Aucune sauvegarde pour le moment — la première sera créée dès la prochaine modification.</p>'}</div>
+    <div class="modal-actions"><button class="btn btn-outline" data-action="close-modal">Fermer</button></div>`);
+}
+
 function exportCompta() {
   const rows = (acMonth ? D().accounting.filter(a => String(a.date || '').startsWith(acMonth)) : D().accounting)
     .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
@@ -1327,6 +1349,33 @@ document.addEventListener('click', e => {
     case 'export-compta':
       exportCompta();
       break;
+    case 'backups':
+      openBackups();
+      break;
+    case 'backup-restore': {
+      const i = Number(e.target.closest('[data-i]').dataset.i);
+      const b = Store.history()[i];
+      if (!b) break;
+      askConfirm('Restaurer la sauvegarde', `Remplacer les données actuelles par celles du ${new Date(b.at).toLocaleString('fr-FR')} ?\nLes modifications faites depuis seront perdues.`, () => { Store.restoreBackup(i); closeModal(); render(); });
+      break;
+    }
+    case 'backup-dl': {
+      const i = Number(e.target.closest('[data-i]').dataset.i);
+      const b = Store.history()[i];
+      if (!b) break;
+      const blob = new Blob([JSON.stringify(b.data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `pbafc-sauvegarde-${b.at.slice(0, 10)}_${b.at.slice(11, 19).replace(/:/g, '-')}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      break;
+    }
+    case 'backup-del': {
+      const i = Number(e.target.closest('[data-i]').dataset.i);
+      askConfirm('Supprimer la sauvegarde', 'Cette instantané sera définitivement effacé.', () => { Store.deleteBackup(i); openBackups(); });
+      break;
+    }
   }
 });
 
