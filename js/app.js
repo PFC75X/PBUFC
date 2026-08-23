@@ -222,6 +222,10 @@ const SCHEMAS = {
       { key: 'contact', label: 'Contact' },
       { key: 'status', label: 'Statut', type: 'select', options: ['Actif', 'Inactif'] }
     ],
+    sortFn: (a, b) => {
+      const ra = STAFF_ROLES.indexOf(a.role), rb = STAFF_ROLES.indexOf(b.role);
+      return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb) || String(a.name || '').localeCompare(b.name || '');
+    },
     rowTitle: m => m.name
   },
 
@@ -783,7 +787,8 @@ function actionButtons(section, it) {
 
 function entityView(section) {
   const s = SCHEMAS[section];
-  const items = D()[section];
+  const raw = D()[section];
+  const items = typeof s.sortFn === 'function' ? [...raw].sort(s.sortFn) : raw;
   const searchBox = items.length > 4 ? `<input class="search-input" placeholder="Rechercher…" data-filter-table="${section}">` : '';
 
   let html = `
