@@ -1448,7 +1448,7 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v22';
+const APP_VERSION = 'v23';
 
 function curUser() { return Store.curUser(); }
 function canManage() {
