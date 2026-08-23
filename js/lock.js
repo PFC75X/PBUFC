@@ -40,6 +40,22 @@
     codeBox = $('lk-code'), status = $('lk-status'), pad = $('lk-pad');
 
   let stage = 0, buf = '', attempts = 0, holdTimer = null, busy = false;
+  let chips = [], pbChip = null;
+
+  function buildChips() {
+    codeBox.innerHTML = '<span class="chip pb">PB</span>' + Array.from({ length: 8 }, () => '<span class="chip"></span>').join('');
+    pbChip = codeBox.querySelector('.chip.pb');
+    chips = [...codeBox.querySelectorAll('.chip:not(.pb)')];
+  }
+  function renderCode() {
+    if (!pbChip) buildChips();
+    pbChip.classList.toggle('on', stage >= 1);
+    chips.forEach((c, i) => {
+      const on = i < buf.length;
+      c.classList.toggle('on', on);
+      c.textContent = on ? '•' : '';
+    });
+  }
   const MSGS_FAIL = [
     'Code erroné. Réessayez.',
     'Accès refusé — la sécurité vous observe.',
@@ -47,11 +63,6 @@
   ];
   const MSGS_BOOT = ['Vérification biométrique…', 'Connexion au réseau souterrain…', 'Chargement des dossiers du club…', 'Bienvenue, Patron.'];
 
-  function renderCode() {
-    let h = `<span class="chip pb ${stage >= 1 ? 'on' : ''}">PB</span>`;
-    for (let i = 0; i < 8; i++) h += `<span class="chip ${i < buf.length ? 'on' : ''}">${i < buf.length ? '•' : ''}</span>`;
-    codeBox.innerHTML = h;
-  }
   function setStatus(txt, cls = '') { status.textContent = txt; status.className = 'lk-status ' + cls; }
 
   [['1'], ['2'], ['3'], ['4'], ['5'], ['6'], ['7'], ['8'], ['9'], ['C', 'fn'], ['0'], ['⌫', 'fn']].forEach(([k, cls]) => {
@@ -141,8 +152,11 @@
     if (mi < MSGS_BOOT.length) $('lk-bootmsg').textContent = MSGS_BOOT[mi];
     else {
       clearInterval(bootInt);
-      $('lk-boot').style.display = 'none';
+      const b = $('lk-boot');
+      b.classList.add('fadeout');
+      setTimeout(() => { b.style.display = 'none'; }, 480);
       ui.style.display = 'flex';
+      requestAnimationFrame(() => requestAnimationFrame(() => ui.classList.add('in')));
     }
   }, 620);
 
