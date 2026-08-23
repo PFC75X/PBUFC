@@ -465,6 +465,8 @@ tbody tr:hover { background: rgba(229,48,74,.045); }
 }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: var(--accent-strong); transform: translateY(-1px); }
+.btn-danger { background: linear-gradient(135deg, #e5304a, #b91c3c); color: #fff; }
+.btn-danger:hover { filter: brightness(1.12); transform: translateY(-1px); }
 .btn-outline { background: transparent; border-color: var(--border); color: var(--text); }
 .btn-outline:hover { border-color: #3d3d48; }
 .btn-ghost { background: var(--panel-2); color: var(--muted); }
@@ -532,6 +534,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
   color: var(--gold);
 }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+.confirm-msg { color: var(--muted); line-height: 1.65; margin: 12px 0 4px; white-space: pre-line; }
 .fiche-head { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; }
 
 .card-list { display: flex; flex-direction: column; gap: 8px; }
