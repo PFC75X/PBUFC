@@ -1448,7 +1448,7 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v26';
+const APP_VERSION = 'v27';
 
 function curUser() { return Store.curUser(); }
 function canManage() {
@@ -1670,6 +1670,6 @@ setInterval(() => {
       document.dispatchEvent(new CustomEvent('pbafc:refresh'));
     }
   }).catch(() => { Store._syncBusy = false; });
-}, 20000);
+}, 30000);
 }
 console.log('PBUFC — Panel de gestion chargé (' + APP_VERSION + ').');
