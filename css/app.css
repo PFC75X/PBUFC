@@ -586,6 +586,11 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
 #auth-input{width:140px;text-align:center;font-size:1.6rem;letter-spacing:.5em;padding:10px 0 10px .5em;border-radius:12px;border:1px solid #2a3342;background:#0c1017;color:#ececf2}
 .auth-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
 .auth-err{color:#ff6b7a;font-size:.85rem;margin:8px 0 0}
+.auth-sub{color:#8b95a7;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px}
+.auth-card input[type="text"],.auth-card select,.auth-card input[type="password"]{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #2a3342;background:#0c1017;color:#ececf2;margin-bottom:10px;font-size:.95rem;text-align:center}
+.auth-card select{text-align:left;appearance:auto}
+.auth-new{display:block;width:100%;padding:12px 16px;border-radius:12px;border:1px dashed #3a4356;background:none;color:#8b95a7;cursor:pointer;font-size:.9rem}
+.auth-new:hover{color:#ececf2;border-color:#e5304a}
 #save-toast[data-mode="offline"]{border-color:rgba(245,158,11,.55);color:#fef3c7}
 #save-toast[data-mode="offline"] .ic{color:#f59e0b}
 #save-toast small{color:#7a8699;font-weight:400}
