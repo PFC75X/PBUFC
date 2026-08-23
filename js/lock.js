@@ -138,9 +138,11 @@
   seal.addEventListener('pointerleave', cancelHold);
 
   function tick() {
+    const c = $('lk-clock'), d = $('lk-date');
+    if (!c || !d) return;
     const n = new Date();
-    $('lk-clock').textContent = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
-    $('lk-date').textContent = n.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    c.textContent = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+    d.textContent = n.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }
   tick();
   setInterval(tick, 1000);
