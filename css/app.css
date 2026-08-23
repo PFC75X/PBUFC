@@ -335,6 +335,8 @@ h1, h2, h3, h4 { font-weight: 650; letter-spacing: -0.01em; }
 }
 .stat-card.green b { color: #4ade80; }
 .stat-card.red b { color: #ff6b7a; }
+.stat-card.purple { border-color: rgba(167,139,250,.35); background: linear-gradient(135deg, rgba(167,139,250,.07), transparent 60%); }
+.stat-card.purple b { color: #c4b5fd; }
 .stat-card.orange b { color: #fb923c; }
 .stat-card.gold-b { border-color: rgba(232,181,58,.35); background: linear-gradient(135deg, rgba(232,181,58,.07), transparent 60%); }
 .stat-card.gold-b b { color: var(--gold); }
