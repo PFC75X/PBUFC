@@ -567,6 +567,25 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
 #save-toast[data-mode="cloud"] .ic{color:#60a5fa}
 #save-toast[data-mode="refresh"]{border-color:rgba(52,211,153,.55);color:#d1fae5}
 #save-toast[data-mode="refresh"] .ic{color:#34d399}
+#save-toast[data-mode="denied"]{border-color:rgba(249,115,22,.55);color:#ffedd5}
+#save-toast[data-mode="denied"] .ic{color:#f97316}
+
+/* ===== Comptes employés ===== */
+.user-chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:#c9c9d2;background:var(--panel-2);border:1px solid var(--border);border-radius:99px;padding:6px 12px;font-weight:600;white-space:nowrap}
+.auth-overlay{position:fixed;inset:0;z-index:9700;display:none;place-items:center;background:rgba(8,8,12,.82);backdrop-filter:blur(4px)}
+.auth-card{width:min(420px,92vw);background:#10151d;border:1px solid #232b38;border-radius:18px;padding:26px 26px 20px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.auth-card h3{margin:14px 0 18px;color:#ececf2}
+.auth-logo{width:64px;height:64px;border-radius:16px;object-fit:cover;border:1px solid #2a2f3a}
+.auth-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.auth-user{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:13px 16px;border-radius:12px;border:1px solid #232b38;background:#151a23;color:#ececf2;cursor:pointer;font-size:.95rem;text-align:left}
+.auth-user:hover{border-color:#e5304a}
+.auth-user small{color:#8b95a7}
+.auth-skip{background:none;border:none;color:#8b95a7;font-size:.85rem;margin-top:10px;cursor:pointer;text-decoration:underline}
+.auth-skip:hover{color:#c9c9d2}
+.auth-pin p{color:#c9c9d2;margin:6px 0 12px}
+#auth-input{width:140px;text-align:center;font-size:1.6rem;letter-spacing:.5em;padding:10px 0 10px .5em;border-radius:12px;border:1px solid #2a3342;background:#0c1017;color:#ececf2}
+.auth-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.auth-err{color:#ff6b7a;font-size:.85rem;margin:8px 0 0}
 #save-toast[data-mode="offline"]{border-color:rgba(245,158,11,.55);color:#fef3c7}
 #save-toast[data-mode="offline"] .ic{color:#f59e0b}
 #save-toast small{color:#7a8699;font-weight:400}
