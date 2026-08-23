@@ -1452,7 +1452,6 @@ function flashSaved(state) {
     offline: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><line x1="3" y1="3" x2="21" y2="21"/></svg>`,
     err: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
   };
-  const mode = state === true ? 'err' : state || 'ok';
   const TXT = {
     ok: ['Enregistré', 'à '],
     err: ['Échec — non enregistré', 'à '],
