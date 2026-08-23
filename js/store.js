@@ -21,8 +21,12 @@ const Store = {
 
   save() {
     const json = JSON.stringify(this.data);
-    try { localStorage.setItem(this.KEY, json); } catch (e) { }
+    let ok = true;
+    try { localStorage.setItem(this.KEY, json); } catch (e) { ok = false; }
     this.autoBackup(json);
+    try {
+      document.dispatchEvent(new CustomEvent(ok ? 'pbafc:saved' : 'pbafc:save-error'));
+    } catch (e) { }
   },
 
   history() {
