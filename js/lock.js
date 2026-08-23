@@ -12,7 +12,7 @@
       <div class="lock-screen" id="lk-screen">
         <div class="statusbar"><span class="sb-brand">PB Portal</span><span>Session chiffrée · FR</span></div>
         <div class="boot" id="lk-boot">
-          <img class="boot-logo" src="assets/logo.png" alt="" onerror="this.style.display='none'">
+          <img class="boot-logo" src="assets/logo-lock.jpg" alt="" onerror="this.style.display='none'">
           <div class="boot-name">PB PORTAL<span>ESPACE PROFESSIONNEL · v3.1</span></div>
           <div class="boot-bar"><i></i></div>
           <div class="boot-msg" id="lk-bootmsg">Chargement…</div>
@@ -22,7 +22,7 @@
             <div class="lk-clock" id="lk-clock">--:--</div>
             <div class="lk-date" id="lk-date"></div>
             <button class="lk-seal" id="lk-seal" title="Logo de l’entreprise — appui long">
-              <img src="assets/logo.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
+              <img src="assets/logo-lock.jpg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
               <b class="seal-pb">PB</b>
               <span class="ring"></span>
             </button>
