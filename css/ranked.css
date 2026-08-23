@@ -36,3 +36,32 @@
 .season-list{margin:8px 0 0 20px;color:var(--text)}
 .season-list li{padding:3px 0;font-size:.88rem}
 .manage-details.panel summary{font-weight:600}
+
+.team-dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:middle;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+
+.avstack{display:inline-flex;align-items:center}
+.avstack .avatar{margin-right:-8px;border:2px solid #14141a;position:relative}
+.avstack .avatar:last-child{margin-right:0}
+.av-more{display:inline-flex;align-items:center;justify-content:center;background:#22222a;border:2px solid #14141a;border-radius:50%;font-size:.62rem;font-weight:700;color:var(--muted);margin-left:-8px}
+
+.members-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;max-height:230px;overflow:auto;padding:4px;background:#0e0e12;border:1px solid var(--border);border-radius:9px}
+.member-pick{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:.85rem;color:var(--muted);transition:.1s}
+.member-pick:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.member-pick.on{background:rgba(229,48,74,.13);color:#ff93a3}
+.member-pick input{accent-color:var(--accent)}
+.field-wide{grid-column:1/-1}
+
+.team-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:8px}
+.team-card{--tc:#e5304a;background:var(--panel);border:1px solid var(--border);border-top:3px solid var(--tc);border-radius:12px;padding:16px;position:relative}
+.tc-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.tc-tag{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.06em;color:#fff;background:var(--tc);padding:3px 9px;border-radius:6px;line-height:1.2}
+.tc-tag.big{font-size:1rem;padding:6px 12px}
+.tc-head .badge{margin-left:auto}
+.tc-pts{margin-left:auto;font-family:var(--font-display);color:var(--gold);font-size:1.15rem}
+.tc-pts small{font-family:var(--font-body);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-left:2px}
+.team-card h4{margin:0 0 4px;font-size:1.15rem}
+.tc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft);font-size:.9rem}
+.tc-actions{display:flex;gap:4px}
+
+.team-banner{display:flex;align-items:center;gap:14px;border-left:4px solid var(--tc);background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 14%,transparent),transparent 70%);padding:12px 14px;border-radius:10px;margin-bottom:12px}
+.pod-card[style*="--pc"]::before{background:linear-gradient(var(--pc),transparent)}
