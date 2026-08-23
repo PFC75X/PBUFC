@@ -81,6 +81,7 @@ const Store = {
   },
 
   pushRemote(now) {
+    if (typeof fetch === 'undefined') { try { document.dispatchEvent(new CustomEvent('pbafc:cloud-err')); } catch (e) { } return; }
     clearTimeout(this.syncTimer);
     const send = () => {
       fetch(`https://api.jsonbin.io/v3/b/${this.SYNC_BIN}`, {
@@ -101,6 +102,7 @@ const Store = {
   forcePush() { this.pushRemote(true); },
 
   pullRemote() {
+    if (typeof fetch === 'undefined') return Promise.resolve(null);
     return fetch(`https://api.jsonbin.io/v3/b/${this.SYNC_BIN}/latest`, { headers: { 'X-Master-Key': this.SYNC_KEY } })
       .then(r => r.ok ? r.json() : null)
       .then(j => (j && j.record) ? j.record : null)
