@@ -572,9 +572,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
 
 /* ===== Comptes employés ===== */
 .user-chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:#c9c9d2;background:var(--panel-2);border:1px solid var(--border);border-radius:99px;padding:6px 12px;font-weight:600;white-space:nowrap}
-#auth-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9700;display:none;-ms-grid-columns:1fr;place-items:center;background:linear-gradient(180deg,#ffffff 0%,#f2f5f9 55%,#e8edf4 100%)}
+#auth-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9700;display:none;-ms-grid-columns:1fr;place-items:center;background:radial-gradient(circle at 50% 30%,#12141a 0%,#000000 75%)}
 .auth-kicker{text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.35em;color:#8b95a7;text-transform:uppercase;margin-bottom:10px}
-.auth-card{width:min(440px,92vw);background:#10151d;border:1px solid #232b38;border-radius:20px;padding:34px 32px 26px;text-align:center;box-shadow:0 30px 90px rgba(15,23,42,.25)}
+.auth-card{width:min(440px,92vw);background:#10151d;border:1px solid #2c3542;border-radius:20px;padding:34px 32px 26px;text-align:center;box-shadow:0 30px 90px rgba(0,0,0,.8)}
 .auth-card h3{margin:14px 0 6px;color:#ececf2;font-size:1.3rem}
 .auth-logo{width:72px;height:72px;border-radius:18px;object-fit:cover;border:1px solid #2a2f3a}
 .auth-list{display:flex;flex-direction:column;gap:8px;margin-top:18px}
