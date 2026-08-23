@@ -111,6 +111,10 @@ const Store = {
 
   lastSync() { try { return localStorage.getItem('pbafc_lastsync'); } catch (e) { return null; } },
 
+  curUser() { try { return JSON.parse(localStorage.getItem('pbafc_user')); } catch (e) { return null; } },
+
+  setUser(u) { try { u ? localStorage.setItem('pbafc_user', JSON.stringify(u)) : localStorage.removeItem('pbafc_user'); } catch (e) { } },
+
   deleteBackup(i) {
     const hist = this.history();
     if (!hist[i]) return;
@@ -123,10 +127,15 @@ const Store = {
   },
 
   log(text) {
+    let who = '';
+    try {
+      const u = JSON.parse(localStorage.getItem('pbafc_user'));
+      if (u && u.name) who = u.name + ' — ';
+    } catch (e) { }
     this.data.log.unshift({
       id: this.uid(),
       time: new Date().toISOString(),
-      text
+      text: who + text
     });
     if (this.data.log.length > 500) this.data.log.length = 500;
   },
