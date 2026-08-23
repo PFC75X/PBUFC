@@ -29,8 +29,8 @@ const Store = {
   },
 
   stableJson() {
-    const c = Object.assign({}, this.data);
-    delete c.updatedAt;
+    const c = {};
+    for (const k in this.data) { if (k === 'updatedAt') continue; c[k] = this.data[k]; }
     return JSON.stringify(c);
   },
 
