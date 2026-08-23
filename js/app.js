@@ -2,7 +2,13 @@ const D = () => Store.data;
 
 const CATEGORIES = ['Poids paille', 'Poids mouche', 'Poids coq', 'Poids plume', 'Poids léger', 'Poids welter', 'Poids moyen', 'Poids lourd'];
 const FIGHTER_STATUS = ['Actif', 'Blessé', 'Suspendu', 'Retraité'];
-const STAFF_ROLES = ['Patron', 'Co-Patron', 'Fight Manager', 'Sécurité', 'Barman', 'Danseuse', 'Coach', 'Médecin', 'Autre'];
+const STAFF_ROLES = ['Patron', 'Co-Patron', 'Fight Manager', 'Comptable', 'Sécurité', 'Barman', 'Danseuse', 'Coach', 'Médecin', 'Autre'];
+
+const AC_CATS = {
+  Recette: ['Billetterie gala', 'Bar & boutique', 'Sponsors', 'Cotisations membres', 'Paris & mises', 'Amendes', 'Autre recette'],
+  'Dépense': ['Salaires staff', 'Primes de combat', 'Organisation gala', 'Salle & charges', 'Matériel & soins', 'Communication', 'Autre dépense']
+};
+let acMonth = '';
 const KO_METHODS = ['KO', 'TKO', 'Soumission'];
 const METHODS = [...KO_METHODS, 'Décision unanime', 'Décision split', 'Abandon', 'Autre'];
 
@@ -396,30 +402,60 @@ const SCHEMAS = {
 
   accounting: {
     title: 'Comptabilité', singular: 'Transaction', icon: '💰',
-    desc: 'Recettes, dépenses, primes et salaires du club.',
+    desc: 'Journal détaillé : recettes, dépenses, catégories, méthodes de paiement et suivi par gala.',
     before() {
-      const r = recettes(), d = depenses();
+      const all = D().accounting;
+      const rows = (acMonth ? all.filter(a => String(a.date || '').startsWith(acMonth)) : all)
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+      const r = rows.filter(a => a.type === 'Recette').reduce((s, a) => s + Number(a.amount || 0), 0);
+      const d = rows.filter(a => a.type === 'Dépense').reduce((s, a) => s + Number(a.amount || 0), 0);
+      const catSum = t => { const m = {}; rows.filter(a => a.type === t).forEach(a => { const k = a.category || 'Autre'; m[k] = (m[k] || 0) + Number(a.amount || 0); }); return Object.entries(m).sort((x, y) => y[1] - x[1]); };
+      const rc = catSum('Recette'), dc = catSum('Dépense');
+      const maxR = Math.max(1, ...rc.map(x => x[1])), maxD = Math.max(1, ...dc.map(x => x[1]));
+      const bars = (list, max, color) => list.map(([k, v]) => `
+        <div class="ac-line"><span>${esc(k)}</span><div class="ac-bar"><i style="width:${Math.max(3, Math.round(v / max * 100))}%;background:${color}"></i></div><b>${money(v)}</b></div>`).join('') || '<p class="muted small">Aucune opération sur la période.</p>';
+      const g = recettes() - depenses();
       return `
+        <div class="ac-toolbar">
+          <label class="ac-month"><span>Période :</span><input type="month" id="ac-month" value="${esc(acMonth)}"></label>
+          ${acMonth ? '<button class="btn btn-ghost btn-sm" data-action="ac-all">Tous les mois</button>' : ''}
+          <button class="btn btn-outline btn-sm" data-action="export-compta">Exporter CSV</button>
+        </div>
         <div class="stat-row">
-          <div class="stat-card green"><small>Total recettes</small><b>+${money(r)}</b></div>
-          <div class="stat-card red"><small>Total dépenses</small><b>−${money(d)}</b></div>
-          <div class="stat-card ${r - d >= 0 ? 'green' : 'red'}"><small>Solde du club</small><b>${money(r - d)}</b></div>
+          <div class="stat-card ${g >= 0 ? 'green' : 'red'}"><small>Solde global</small><b>${money(g)}</b><small>toutes périodes</small></div>
+          <div class="stat-card"><small>Recettes</small><b class="rec">+${money(r)}</b><small>${esc(acMonth || 'toutes périodes')}</small></div>
+          <div class="stat-card"><small>Dépenses</small><b class="exp">−${money(d)}</b><small>${esc(acMonth || 'toutes périodes')}</small></div>
+          <div class="stat-card ${r - d >= 0 ? 'green' : 'red'}"><small>Résultat période</small><b>${money(r - d)}</b><small>${rows.length} opération(s)</small></div>
+        </div>
+        <div class="ac-grid">
+          <div class="panel ac-panel"><h4>Recettes par catégorie</h4>${bars(rc, maxR, '#22c55e')}</div>
+          <div class="panel ac-panel"><h4>Dépenses par catégorie</h4>${bars(dc, maxD, '#e5304a')}</div>
         </div>`;
     },
     columns: [
       { label: 'Date', get: a => fmtDate(a.date) },
-      { label: 'Libellé', get: a => `<b>${esc(a.label)}</b>` },
+      { label: 'Libellé', get: a => `<b>${esc(a.label)}</b>${a.ref ? `<br><small class="muted">${esc(a.ref)}</small>` : ''}` },
       { label: 'Type', get: a => a.type === 'Recette' ? badge('Recette', 'green') : badge('Dépense', 'red') },
       { label: 'Catégorie', get: a => esc(a.category || '—') },
+      { label: 'Paiement', get: a => esc(a.method || '—') },
       { label: 'Montant', get: a => `<b class="${a.type === 'Recette' ? 'rec' : 'exp'}">${a.type === 'Recette' ? '+' : '−'}${money(a.amount)}</b>` }
     ],
+    sortFn: (a, b) => String(b.date || '').localeCompare(String(a.date || '')),
     fields: [
-      { key: 'label', label: 'Libellé *', required: true },
+      { key: 'label', label: 'Libellé *', required: true, placeholder: 'ex : Recettes bar gala du 15' },
       { key: 'type', label: 'Type', type: 'select', options: ['Recette', 'Dépense'] },
-      { key: 'category', label: 'Catégorie', type: 'select', options: ['Billetterie', 'Bar', 'Sponsors', 'Primes', 'Salaires', 'Location', 'Matériel', 'Sanctions', 'Autre'] },
+      { key: 'category', label: 'Catégorie', type: 'select', options: [...AC_CATS.Recette, ...AC_CATS['Dépense']] },
       { key: 'amount', label: 'Montant ($)', type: 'number', required: true },
-      { key: 'date', label: 'Date', type: 'date' }
+      { key: 'date', label: 'Date', type: 'date' },
+      { key: 'method', label: 'Méthode de paiement', type: 'select', options: ['Espèces', 'Carte', 'Virement', 'Crypto'] },
+      { key: 'ref', label: 'Référence / Gala concerné', placeholder: 'ex : Gala Blood Night — salle A' }
     ],
+    afterForm(form) {
+      const tsel = form.elements.type, csel = form.elements.category;
+      if (!tsel || !csel) return;
+      const sync = () => { const cur = csel.value; csel.innerHTML = (AC_CATS[tsel.value] || []).map(c => `<option${c === cur ? ' selected' : ''}>${c}</option>`).join(''); };
+      tsel.addEventListener('change', sync); sync();
+    },
     onSave(item) { Store.log(`${item.type} comptable : ${item.label} (${money(item.amount)})`); },
     rowTitle: a => a.label
   },
@@ -886,6 +922,7 @@ function openForm(section, id) {
       </div>
     </form>`);
   document.getElementById('entity-form').addEventListener('submit', submitEntityForm);
+  if (typeof s.afterForm === 'function') s.afterForm(document.getElementById('entity-form'));
 }
 
 function submitEntityForm(ev) {
@@ -1205,6 +1242,20 @@ function exportJSON() {
   URL.revokeObjectURL(a.href);
 }
 
+function exportCompta() {
+  const rows = (acMonth ? D().accounting.filter(a => String(a.date || '').startsWith(acMonth)) : D().accounting)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  const head = 'Date;Type;Categorie;Libelle;Paiement;Reference;Montant';
+  const lines = rows.map(a => [a.date || '', a.type || '', a.category || '', a.label || '', a.method || '', a.ref || '', Number(a.amount || 0)]
+    .map(x => String(x).replace(/;/g, ',')).join(';'));
+  const blob = new Blob(['\ufeff' + head + '\n' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `compta-pbafc-${acMonth || 'tout'}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 document.getElementById('import-file').addEventListener('change', ev => {
   const file = ev.target.files[0];
   if (!file) return;
@@ -1270,10 +1321,17 @@ document.addEventListener('click', e => {
     case 'reset':
       askConfirm('Réinitialisation', 'Réinitialiser TOUTES les données du club ? Tout repartira de zéro.', () => { Store.reset(); render(); });
       break;
+    case 'ac-all':
+      acMonth = ''; render();
+      break;
+    case 'export-compta':
+      exportCompta();
+      break;
   }
 });
 
 document.addEventListener('input', e => {
+  if (e.target.id === 'ac-month') { acMonth = e.target.value; render(); return; }
   const inp = e.target.closest('[data-filter-table]');
   if (!inp) return;
   const q = inp.value.toLowerCase();
