@@ -1,5 +1,7 @@
 const Store = {
   KEY: 'pbafc_v3',
+  HIST_KEY: 'pbafc_hist_v1',
+  HIST_MAX: 25,
   data: null,
 
   load() {
@@ -9,6 +11,7 @@ const Store = {
     } catch (e) {
       this.data = this.seed();
     }
+    if (!this.data) this.data = this.seed();
     if (!this.data.log) this.data.log = [];
     ['fighters', 'staff', 'events', 'fights', 'tfights', 'teams', 'championships', 'tickets', 'accounting', 'sponsors', 'sanctions', 'hof', 'seasons'].forEach(k => { if (!Array.isArray(this.data[k])) this.data[k] = []; });
     if (!this.data.counters) this.data.counters = { pbufc: 0, event: 0 };
@@ -17,7 +20,47 @@ const Store = {
   },
 
   save() {
-    localStorage.setItem(this.KEY, JSON.stringify(this.data));
+    const json = JSON.stringify(this.data);
+    try { localStorage.setItem(this.KEY, json); } catch (e) { }
+    this.autoBackup(json);
+  },
+
+  history() {
+    try { const h = JSON.parse(localStorage.getItem(this.HIST_KEY)); return Array.isArray(h) ? h : []; } catch (e) { return []; }
+  },
+
+  autoBackup(json) {
+    try {
+      const hist = this.history();
+      if (hist[0] && JSON.stringify(hist[0].data) === json) return;
+      hist.unshift({
+        at: new Date().toISOString(),
+        label: (this.data.log && this.data.log[0] && this.data.log[0].text) || 'Modification manuelle',
+        size: json.length,
+        data: JSON.parse(json)
+      });
+      while (hist.length > this.HIST_MAX) hist.pop();
+      localStorage.setItem(this.HIST_KEY, JSON.stringify(hist));
+    } catch (e) { /* quota dépassé — on ignore */ }
+  },
+
+  restoreBackup(i) {
+    const b = this.history()[i];
+    if (!b) return false;
+    this.data = b.data;
+    if (!this.data.log) this.data.log = [];
+    if (!this.data.counters) this.data.counters = { pbufc: 0, event: 0 };
+    ['fighters', 'staff', 'events', 'fights', 'tfights', 'teams', 'championships', 'tickets', 'accounting', 'sponsors', 'sanctions', 'hof', 'seasons'].forEach(k => { if (!Array.isArray(this.data[k])) this.data[k] = []; });
+    this.log(`Sauvegarde du ${new Date(b.at).toLocaleString('fr-FR')} restaurée`);
+    this.save();
+    return true;
+  },
+
+  deleteBackup(i) {
+    const hist = this.history();
+    if (!hist[i]) return;
+    hist.splice(i, 1);
+    localStorage.setItem(this.HIST_KEY, JSON.stringify(hist));
   },
 
   uid() {
