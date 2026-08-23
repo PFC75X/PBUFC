@@ -554,6 +554,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
 .bk-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .bk-info small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bk-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+/* ===== Indicateur de sauvegarde ===== */
+#save-toast{position:fixed;right:22px;bottom:22px;z-index:9500;display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:12px;background:#10151d;border:1px solid rgba(34,197,94,.45);color:#c6f6d5;font-size:.85rem;font-weight:600;box-shadow:0 14px 34px rgba(0,0,0,.45);opacity:0;transform:translateY(14px);pointer-events:none;transition:opacity .25s ease,transform .25s cubic-bezier(.2,.8,.3,1)}
+#save-toast.show{opacity:1;transform:none}
+#save-toast svg{color:#22c55e;flex-shrink:0}
+#save-toast.err{border-color:rgba(229,48,74,.55);color:#fecdd3}
+#save-toast.err svg{color:#e5304a}
+#save-toast small{color:#7a8699;font-weight:400}
 .fiche-head { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; }
 
 .card-list { display: flex; flex-direction: column; gap: 8px; }
