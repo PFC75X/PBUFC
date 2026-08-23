@@ -3,6 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    window.onerror = function (m, s, l, c) {
+      try {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#7f1d1d;color:#fff;font:11px Consolas,monospace;padding:8px 12px;white-space:pre-wrap;border-bottom:2px solid #ef4444';
+        d.textContent = 'ERREUR JS: ' + m + '  [' + String(s || '').split('/').pop() + ':' + l + ':' + c + ']';
+        (document.body || document.documentElement).appendChild(d);
+      } catch (e) { }
+      return false;
+    };
+  </script>
   <title>PBUFC — Panel de Gestion du Fight Club</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,8 +55,8 @@
   <div class="modal" id="modal"></div>
 </div>
 
-<script src="js/store.js?v=19"></script>
-<script src="js/app.js?v=19"></script>
-<script src="js/lock.js?v=19"></script>
+<script src="js/store.js?v=20"></script>
+<script src="js/app.js?v=20"></script>
+<script src="js/lock.js?v=20"></script>
 </body>
 </html>
