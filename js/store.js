@@ -2,6 +2,10 @@ const Store = {
   KEY: 'pbafc_v3',
   HIST_KEY: 'pbafc_hist_v1',
   HIST_MAX: 25,
+  SYNC_KEY: '$2a$10$HuqA09uGOK97vYrfGFkt6.lFPy3a7Y5CcJGlX3vxmEHts/b.krR9y',
+  SYNC_BIN: '6a8b6917da38895dfe081200',
+  syncTimer: null,
+  _stable: null,
   data: null,
 
   load() {
@@ -12,14 +16,28 @@ const Store = {
       this.data = this.seed();
     }
     if (!this.data) this.data = this.seed();
-    if (!this.data.log) this.data.log = [];
-    ['fighters', 'staff', 'events', 'fights', 'tfights', 'teams', 'championships', 'tickets', 'accounting', 'sponsors', 'sanctions', 'hof', 'seasons'].forEach(k => { if (!Array.isArray(this.data[k])) this.data[k] = []; });
-    if (!this.data.counters) this.data.counters = { pbufc: 0, event: 0 };
+    this.normalize();
+    this._stable = this.stableJson();
     this.save();
     return this.data;
   },
 
+  normalize() {
+    if (!this.data.log) this.data.log = [];
+    ['fighters', 'staff', 'events', 'fights', 'tfights', 'teams', 'championships', 'tickets', 'accounting', 'sponsors', 'sanctions', 'hof', 'seasons'].forEach(k => { if (!Array.isArray(this.data[k])) this.data[k] = []; });
+    if (!this.data.counters) this.data.counters = { pbufc: 0, event: 0 };
+  },
+
+  stableJson() {
+    const c = Object.assign({}, this.data);
+    delete c.updatedAt;
+    return JSON.stringify(c);
+  },
+
   save() {
+    const s = this.stableJson();
+    if (this._stable === null) this._stable = s;
+    else if (s !== this._stable) { this._stable = s; this.data.updatedAt = new Date().toISOString(); }
     const json = JSON.stringify(this.data);
     let ok = true;
     try { localStorage.setItem(this.KEY, json); } catch (e) { ok = false; }
@@ -27,6 +45,7 @@ const Store = {
     try {
       document.dispatchEvent(new CustomEvent(ok ? 'pbafc:saved' : 'pbafc:save-error'));
     } catch (e) { }
+    this.pushRemote();
   },
 
   history() {
@@ -55,10 +74,40 @@ const Store = {
     if (!this.data.log) this.data.log = [];
     if (!this.data.counters) this.data.counters = { pbufc: 0, event: 0 };
     ['fighters', 'staff', 'events', 'fights', 'tfights', 'teams', 'championships', 'tickets', 'accounting', 'sponsors', 'sanctions', 'hof', 'seasons'].forEach(k => { if (!Array.isArray(this.data[k])) this.data[k] = []; });
+    this._stable = null;
     this.log(`Sauvegarde du ${new Date(b.at).toLocaleString('fr-FR')} restaurée`);
     this.save();
     return true;
   },
+
+  pushRemote(now) {
+    clearTimeout(this.syncTimer);
+    const send = () => {
+      fetch(`https://api.jsonbin.io/v3/b/${this.SYNC_BIN}`, {
+        method: 'PUT',
+        headers: { 'X-Master-Key': this.SYNC_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ record: this.data })
+      }).then(r => {
+        if (r.ok) {
+          try { localStorage.setItem('pbafc_lastsync', new Date().toISOString()); } catch (e) { }
+          document.dispatchEvent(new CustomEvent('pbafc:cloud-ok'));
+        } else document.dispatchEvent(new CustomEvent('pbafc:cloud-err'));
+      }).catch(() => document.dispatchEvent(new CustomEvent('pbafc:cloud-err')));
+    };
+    if (now) send();
+    else this.syncTimer = setTimeout(send, 1500);
+  },
+
+  forcePush() { this.pushRemote(true); },
+
+  pullRemote() {
+    return fetch(`https://api.jsonbin.io/v3/b/${this.SYNC_BIN}/latest`, { headers: { 'X-Master-Key': this.SYNC_KEY } })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => (j && j.record) ? j.record : null)
+      .catch(() => null);
+  },
+
+  lastSync() { try { return localStorage.getItem('pbafc_lastsync'); } catch (e) { return null; } },
 
   deleteBackup(i) {
     const hist = this.history();
