@@ -1,5 +1,5 @@
 const Store = {
-  KEY: 'pbafc_v2',
+  KEY: 'pbafc_v3',
   data: null,
 
   load() {
@@ -10,6 +10,8 @@ const Store = {
       this.data = this.seed();
     }
     if (!this.data.log) this.data.log = [];
+    ['fighters', 'staff', 'events', 'fights', 'tfights', 'teams', 'championships', 'tickets', 'accounting', 'sponsors', 'sanctions', 'hof', 'seasons'].forEach(k => { if (!Array.isArray(this.data[k])) this.data[k] = []; });
+    if (!this.data.counters) this.data.counters = { pbufc: 0, event: 0 };
     this.save();
     return this.data;
   },
@@ -53,9 +55,11 @@ const Store = {
     return {
       counters: { pbufc: 0, event: 0 },
       fighters: [],
+      teams: [],
       staff: [],
       events: [],
       fights: [],
+      tfights: [],
       championships: [],
       tickets: [],
       accounting: [],
