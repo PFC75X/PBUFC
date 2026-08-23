@@ -1,10 +1,10 @@
-#lock{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:linear-gradient(160deg,#dfe5ee 0%,#cdd6e2 50%,#bfc9d8 100%);transition:opacity .7s ease}
+#lock{position:fixed;inset:0;z-index:10000;background:linear-gradient(180deg,#ffffff 0%,#f2f5f9 55%,#e8edf4 100%);transition:opacity .7s ease}
 #lock.off{opacity:0;pointer-events:none}
-.lock-frame{width:min(1180px,98vw);border-radius:58px;background:#232a35;border:16px solid #161c26;outline:1px solid #3a4453;box-shadow:0 60px 140px rgba(30,41,59,.45);overflow:hidden;position:relative}
-.lock-screen{position:relative;height:min(1040px,93vh);display:flex;flex-direction:column;background:linear-gradient(180deg,#ffffff 0%,#f2f5f9 55%,#e8edf4 100%);overflow:hidden}
+.lock-frame,.lock-screen{width:100%;height:100%;position:relative}
+.lock-screen{display:flex;flex-direction:column;background:linear-gradient(180deg,#ffffff 0%,#f2f5f9 55%,#e8edf4 100%);overflow:hidden}
 .lock-screen::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 85% -10%,rgba(47,107,255,.08),transparent 55%),radial-gradient(ellipse at -10% 110%,rgba(47,107,255,.06),transparent 50%);pointer-events:none}
 
-.statusbar{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:17px 72px;font-size:.8rem;font-weight:600;color:#64748b;border-bottom:1px solid #e2e8f0;background:rgba(255,255,255,.75)}
+.statusbar{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:18px 48px;font-size:.8rem;font-weight:600;color:#64748b;border-bottom:1px solid #e2e8f0;background:rgba(255,255,255,.75)}
 .statusbar .sb-brand{letter-spacing:.12em;color:#334155}
 
 .boot{position:absolute;inset:56px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:24px 70px;transition:opacity .45s ease;z-index:2}
@@ -20,7 +20,7 @@
 .lock-ui{position:absolute;inset:56px 0 0;display:flex;flex-direction:column;min-height:0;opacity:0;transform:translateY(16px);transition:opacity .55s ease,transform .55s cubic-bezier(.22,.9,.32,1);z-index:2;will-change:opacity,transform}
 .lock-ui.in{opacity:1;transform:none}
 
-.lk-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;padding:10px 90px 30px;min-height:0}
+.lk-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;padding:12px 60px 34px;min-height:0}
 .lk-clock{font-family:var(--font-display);font-size:96px;font-weight:600;line-height:1;color:#0f172a;letter-spacing:.04em;font-variant-numeric:tabular-nums}
 .lk-date{font-size:.82rem;text-transform:uppercase;letter-spacing:.3em;color:#64748b;margin-top:-10px;font-weight:500}
 
