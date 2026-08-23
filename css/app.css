@@ -547,6 +547,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.65); }
 .ac-bar { height: 9px; background: rgba(255,255,255,.07); border-radius: 99px; overflow: hidden; }
 .ac-bar i { display: block; height: 100%; border-radius: 99px; transition: width .5s cubic-bezier(.25,.8,.3,1); }
 @media (max-width: 760px) { .ac-grid { grid-template-columns: 1fr; } .ac-line { grid-template-columns: 110px 1fr auto; } }
+
+/* ===== Sauvegardes automatiques ===== */
+.bk-list { display: flex; flex-direction: column; gap: 8px; max-height: 55vh; overflow-y: auto; margin-top: 14px; }
+.bk-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
+.bk-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bk-info small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bk-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .fiche-head { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; }
 
 .card-list { display: flex; flex-direction: column; gap: 8px; }
