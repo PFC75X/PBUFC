@@ -33,8 +33,10 @@ const STATUS_COLORS = { 'Actif': 'green', 'Blessé': 'orange', 'Suspendu': 'red'
 
 function autoStats(fid) {
   let w = 0, l = 0, n = 0, ko = 0, pts = 0;
+  const ss = String(D().seasonStart || '');
   D().fights.forEach(ft => {
     if (!ft.winnerId || (ft.f1Id !== fid && ft.f2Id !== fid)) return;
+    if (ss && ft.date && String(ft.date) < ss) return;
     if (ft.winnerId === 'DRAW') { n++; return; }
     if (ft.winnerId === fid) { w++; pts += ft.method === 'Abandon' ? 2 : 4; if (KO_METHODS.includes(ft.method)) ko++; }
     else { l++; pts -= 4; }
@@ -61,7 +63,9 @@ function ranking() {
 function rankOf(fid) { return ranking().findIndex(r => r.f.id === fid) + 1; }
 
 function resultsOf(fid) {
+  const ss = String(D().seasonStart || '');
   return D().fights.filter(f => f.winnerId && (f.f1Id === fid || f.f2Id === fid))
+    .filter(f => !(ss && f.date && String(f.date) < ss))
     .sort((a, b) => String(a.date).localeCompare(b.date))
     .map(f => f.winnerId === 'DRAW' ? 'n' : (f.winnerId === fid ? 'w' : 'l'));
 }
@@ -473,7 +477,7 @@ const SCHEMAS = {
       </div>`;
     },
     columns: [
-      { label: 'Sponsor', get: s => `<b>${esc(s.name)}</b>` },
+      { label: 'Sponsor', get: s => `<b>${esc(s.name)}</b>${s.notes ? `<br><small class="muted">${esc(s.notes)}</small>` : ''}` },
       { label: 'Contact', get: s => esc(s.contact || '—') },
       { label: 'Montant / mois', get: s => `<b class="rec">+${money(s.monthly)}</b>` },
       { label: 'Durée', get: s => `${fmtDate(s.start)} → ${fmtDate(s.end)}` },
@@ -485,7 +489,8 @@ const SCHEMAS = {
       { key: 'monthly', label: 'Montant mensuel ($)', type: 'number' },
       { key: 'start', label: 'Début contrat', type: 'date' },
       { key: 'end', label: 'Fin contrat', type: 'date' },
-      { key: 'status', label: 'Statut', type: 'select', options: ['Actif', 'Expiré', 'Résilié', 'En négociation'] }
+      { key: 'status', label: 'Statut', type: 'select', options: ['Actif', 'Expiré', 'Résilié', 'En négociation'] },
+      { key: 'notes', label: 'Notes / infos supplémentaires', type: 'textarea', placeholder: 'ex : contrepartie — logo sur le ring, 2 places VIP par gala…' }
     ],
     rowTitle: s => s.name
   },
@@ -652,8 +657,8 @@ const CUSTOM_VIEWS = {
 
     return `
       <div class="section-head">
-        <div><h2>Ranked — Fighting League</h2><p class="muted">Barème : victoire <b class="rec">+4</b> · défaite <b class="exp">−4</b> · nul 0 · abandon adverse <b class="rec">+2</b>. Ajustez points et palmarès manuellement, suivez la forme.</p></div>
-        <button class="btn btn-outline btn-sm" data-action="close-season">Clôturer la saison</button>
+        <div><h2>Ranked — Fighting League</h2><p class="muted">Barème : victoire <b class="rec">+4</b> · défaite <b class="exp">−4</b> · nul 0 · abandon adverse <b class="rec">+2</b>. Ajustez points et palmarès manuellement, suivez la forme.${D().seasonStart ? `<br>Saison en cours depuis le <b>${fmtDate(D().seasonStart)}</b> — seuls les combats postérieurs comptent.` : ''}</p></div>
+        <button class="btn btn-outline btn-sm" data-action="close-season">Lancer une nouvelle saison</button>
       </div>
 
       <div class="chip-row">
@@ -1010,14 +1015,15 @@ function openTeamFiche(id) {
 }
 
 function closeSeason() {
-  askConfirm('Clôturer la saison', 'Les tops 10 FL et équipes TFL seront archivés et tous les ajustements manuels remis à zéro.', () => {
+  askConfirm('Lancer une nouvelle saison', 'La saison actuelle sera archivée (top 10 combattants + top 10 équipes conservés dans l\'historique) et tous les points/ajustements repartiront de zéro. Continuer ?', () => {
     D().seasons = D().seasons || [];
     const topF = ranking().slice(0, 10).map(r => { const s = stats(r.f.id); return { name: r.f.name, pbufc: r.f.pbufc, pts: s.pts, w: s.w, l: s.l }; });
     const topT = teamRanking().slice(0, 10).map(r => { return { name: r.t.name, tag: r.t.tag || '', pts: r.s.pts, w: r.s.w, l: r.s.l }; });
     D().seasons.unshift({ id: Store.uid(), closedAt: new Date().toISOString().slice(0, 10), top: topF, teams: topT });
     D().fighters.forEach(f => { f.bonus = 0; f.adj = {}; });
     D().teams.forEach(t => { t.bonus = 0; });
-    Store.log(`Saison clôturée — top ${topF.length} combattants + top ${topT.length} équipes archivés, ajustements remis à zéro`);
+    D().seasonStart = new Date().toISOString().slice(0, 10);
+    Store.log(`Nouvelle saison lancée le ${D().seasonStart} — top ${topF.length} combattants + top ${topT.length} équipes archivés, classement reparti de zéro`);
     Store.save();
     render();
   });
@@ -1455,7 +1461,7 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v28';
+const APP_VERSION = 'v29';
 
 function curUser() { return Store.curUser(); }
 function canManage() {
@@ -1637,7 +1643,7 @@ window.__pbafcReady = true;
 })();
 
 updateUserChip();
-showLogin();
+if (!Store.curUser()) showLogin();
 
 if (typeof fetch === 'undefined') {
   document.dispatchEvent(new CustomEvent('pbafc:cloud-err'));
@@ -1653,7 +1659,7 @@ Store.pullRemote().then(remote => {
     Store.save();
     render();
     const _ov = document.getElementById('auth-overlay');
-    if (_ov && _ov.style.display === 'grid') { _ov.remove(); showLogin(); }
+    if (_ov && _ov.style.display === 'grid' && !Store.curUser()) { _ov.remove(); showLogin(); }
   } else {
     Store.pushRemote();
   }
