@@ -517,6 +517,12 @@ const SCHEMAS = {
   hof: {
     title: 'Hall of Fame', singular: 'Légende', icon: '🗿',
     desc: 'Les légendes du PBUFC.', view: 'cards',
+    columns: [
+      { label: 'Légende', get: h => `<b>${esc(h.name)}</b>` },
+      { label: 'Titre', get: h => esc(h.title || '') },
+      { label: 'Palmarès', get: h => esc(h.record || '') },
+      { label: 'Intronisé', get: h => esc(h.year || '?') }
+    ],
     card(h) {
       return `<article class="card hof-card">
         <div class="hof-top">${avatar({ name: h.name, photo: h.photo }, 56)}
@@ -855,6 +861,7 @@ function entityView(section) {
 
 function hiddenRowsTable(section, items) {
   const s = SCHEMAS[section];
+  if (!s.columns || !s.columns.length) return '';
   return `<details class="manage-details"><summary>Gérer (${items.length}) — modifier / supprimer</summary>
     <div class="table-wrap"><table>
       <thead><tr>${s.columns.map(c => `<th>${c.label}</th>`).join('')}<th>Actions</th></tr></thead>
@@ -1448,7 +1455,7 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v27';
+const APP_VERSION = 'v28';
 
 function curUser() { return Store.curUser(); }
 function canManage() {
