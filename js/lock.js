@@ -1,5 +1,5 @@
 (function () {
-  const CODE = '23082026';
+  const CODE = '20260825';
   const TAB_KEY = 'pbafc_unlock_tab';
   try { if (sessionStorage.getItem(TAB_KEY) === '1') { const _l = document.getElementById('lock'); if (_l) _l.remove(); return; } } catch (e) { }
 
