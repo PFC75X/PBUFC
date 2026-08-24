@@ -306,7 +306,7 @@ const SCHEMAS = {
     desc: 'Galas Fight Night (avec enjeux) et soirées hors-enjeux : carte des combats, horaires, main event.',
     columns: [
       { label: '#', get: e => `<b class="mono">#${esc(e.number)}</b>` },
-      { label: 'Nom', get: e => `<b>${esc(e.name)}</b> ${badge(e.type || 'Gala', e.type === 'Soirée' ? 'purple' : 'gold')}${e.notes ? `<br><small class="muted">${esc(e.notes)}</small>` : ''}` },
+      { label: 'Nom', get: e => `<b>${esc(e.name)}</b> ${e.type ? badge(e.type, e.type === 'Soirée' ? 'purple' : 'gold') : ''}${e.notes ? `<br><small class="muted">${esc(e.notes)}</small>` : ''}` },
       { label: 'Date & heure', get: e => `${fmtDate(e.date)}<br><small class="muted">${esc(e.time || '')}</small>` },
       { label: 'Lieu', get: e => esc(e.location || '—') },
       { label: 'Carte', get: e => { const n = D().fights.filter(f => f.eventId === e.id).length; const me = D().fights.find(f => f.eventId === e.id && f.importance === 'Main Event'); return `${n} combat(s)${me ? `<br><small class="gold">★ ME : ${esc(fighterName(me.f1Id))} vs ${esc(fighterName(me.f2Id))}</small>` : ''}`; } },
@@ -315,7 +315,7 @@ const SCHEMAS = {
     fields: [
       { key: 'number', label: 'Numéro FN (vide = auto)', placeholder: 'ex : 009' },
       { key: 'name', label: 'Nom de l’événement *', required: true },
-      { key: 'type', label: 'Type', type: 'select', options: ['Gala', 'Soirée'] },
+      { key: 'type', label: 'Type de gala', placeholder: 'ex : Gala, Soirée, Gala caritatif, Fight Night spécial…' },
       { key: 'date', label: 'Date', type: 'date' },
       { key: 'time', label: 'Heure début' },
       { key: 'location', label: 'Lieu' },
@@ -1461,7 +1461,7 @@ document.getElementById('burger').addEventListener('click', () => {
 });
 window.addEventListener('hashchange', render);
 
-const APP_VERSION = 'v29';
+const APP_VERSION = 'v30';
 
 function curUser() { return Store.curUser(); }
 function canManage() {
